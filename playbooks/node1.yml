@@ -1,0 +1,127 @@
+---
+- hosts: node1
+  strategy: free
+  gather_facts: False
+  tasks:
+  - name: Creating Ansible User
+    user:
+      name: user
+      shell: /bin/bash
+      groups: wheel
+      append: yes
+  - name: Changing User Password
+    shell: echo password | sudo passwd user --stdin
+  - name: Fixing Resolv File
+    command: echo 'nameserver 8.8.8.8' > /etc/resolv.conf
+    become: yes
+    become_user: user
+  - name: Finding Pip
+    command: sudo curl https://bootstrap.pypa.io/get-pip.py -o /usr/bin/get-pip.py
+    become: yes
+    ignore_errors: yes
+  - name: Installing Pip
+    command: /bin/python3 /usr/bin/get-pip.py --user
+    become: yes
+    become_user: user
+    ignore_errors: yes
+  - name: Upgrading Pip
+    command: /bin/python3 -m pip install -U pip --user
+    become: no
+    become_user: user
+    ignore_errors: yes
+  - name: Installing Pexpect
+    command: /bin/python3 -m pip install pexpect --user
+    become: yes
+    become_user: user
+  - name: Creating Temporary Repo File
+    file:
+      path: /etc/yum.repos.d/control.repo
+      state: touch
+      mode: 0755
+  - name: Building Repo File
+    blockinfile:
+      dest: /etc/yum.repos.d/control.repo
+      block: |
+       [ipa]
+       name=control repo
+       baseurl=http://control.example.com/rpms
+       gpgcheck=0
+       enabled=1
+    tags: repo
+  - name: Disabling services
+    selinux:
+      state: disabled
+  - name: Fixing hosts file
+    lineinfile:
+      dest: /etc/hosts
+      regexp: '^127\.0\.0\.1'
+      state: absent
+  - name: Adding localhost IPV4 address to host file
+    lineinfile:
+      path: /etc/hosts
+      line: 127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+      create: yes
+  - name: Adding localhost IPV6 address to host file
+    lineinfile:
+      path: /etc/hosts
+      line: ::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+      create: yes
+  - name: Adding Control address to hosts file
+    lineinfile:
+      path: /etc/hosts
+      line: 192.168.55.200 control.example.com control
+      create: yes
+  - name: Adding node1 address to hosts file
+    lineinfile:
+      path: /etc/hosts
+      line: 192.168.55.201 node1.example.com node1
+      create: yes
+  - name: Adding node2 address to hosts file
+    lineinfile:
+      path: /etc/hosts
+      line: 192.168.55.202 node2.example.com node2
+      create: yes
+  - name: Configuring network
+    command: nmcli con mod "System eth1" ipv4.addresses 192.168.55.201/24 ipv4.gateway 192.168.55.1 ipv4.dns 192.168.55.200 ipv4.dns-search example.com ipv4.method manual
+  - name: Saving network config
+    command: nmcli con up "System eth1" 
+  - name: Fixing Resolv File
+    command: echo 'nameserver 192.168.55.200' > /etc/resolv.conf
+  - name: Enabling IPV6
+    shell: sysctl net.ipv6.conf.lo.disable_ipv6=0 ; sysctl net.ipv6.conf.all.disable_ipv6=0
+  - name: Enabling Authconfig. Installing Environment Packages...
+    command: authconfig --update --enablesssd --enablesssdauth --enablemkhomedir
+  - name: Environment Packages Installed.
+    shell: yum install -y man-pages 
+    tags: repo
+    async: 500
+    poll: 0
+    register: yum_sleeper
+  - name: Finishing Environment Package Installation Before IPA Client Configuration
+    async_status: jid={{ yum_sleeper.ansible_job_id }}
+    register: job_result
+    until: job_result.finished
+    retries: 40  
+  - name: Erasing Repos
+    shell: rm -rf /etc/yum.repos.d/*
+  - name: IPA client Configured
+    command: ipa-client-install --enable-dns-updates --mkhomedir -N --principal admin --server control.example.com -w password --hostname node1.example.com --realm=EXAMPLE.COM --domain=example.com -U
+    ignore_errors: yes
+    async: 500
+    poll: 0
+    register: ipa_sleeper
+  - name: Enabling services
+    service: name=firewalld enabled=true
+  - name: Starting services
+    service: name=firewalld state=started
+  - name: Finishing IPA client configuration
+    async_status: jid={{ ipa_sleeper.ansible_job_id }}
+    register: job_result
+    until: job_result.finished
+    retries: 40
+  - name: Erasing Repos
+    shell: rm -rf /etc/yum.repos.d/*
+    tags: repo
+  - name: Rebooting machine
+    reboot:
+      reboot_timeout: 60

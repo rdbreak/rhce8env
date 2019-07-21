@@ -1,0 +1,6 @@
+[control]
+control.example.com ansible_user=vagrant ansible_ssh_pass=vagrant
+[node1]
+node1.example.com ansible_user=vagrant ansible_ssh_pass=vagrant
+[node2]
+node2.example.com ansible_user=vagrant ansible_ssh_pass=vagrant

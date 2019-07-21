@@ -1,0 +1,167 @@
+---
+- hosts: control
+  strategy: free
+  gather_facts: false
+  tasks:
+  - name: Creating Ansible User
+    user:
+      name: user
+      shell: /bin/bash
+      groups: wheel
+      append: yes
+  - name: Changing User Password
+    shell: echo password | sudo passwd user --stdin
+  - name: Fixing Resolv File
+    command: echo 'nameserver 8.8.8.8' > /etc/resolv.conf
+    become: yes
+    become_user: user
+  - name: Finding Pip
+    command: sudo curl https://bootstrap.pypa.io/get-pip.py -o /usr/bin/get-pip.py
+    become: yes
+    ignore_errors: yes
+  - name: Installing Pip
+    command: /bin/python3 /usr/bin/get-pip.py --user
+    become: yes
+    become_user: user
+    ignore_errors: yes
+  - name: Upgrading Pip
+    command: /bin/python3 -m pip install -U pip --user
+    become: no
+    become_user: user
+    ignore_errors: yes
+  - name: Installing Ansible
+    command: /bin/python3 -m pip install ansible --user
+    become: yes
+    become_user: user
+  - name: Installing Pexpect
+    command: /bin/python3 -m pip install pexpect --user
+    become: yes
+    become_user: user
+#  - pip: 
+#      name: 
+#        - ansible
+#        - pexpect
+#    ignore_errors: yes
+#    become: yes
+#    become_user: user
+  - name: Fixing hosts file
+    lineinfile:
+      dest: /etc/hosts
+      regexp: '^127\.0\.0\.1'
+      state: absent
+  - name: Adding localhost IPV4 address to host file
+    lineinfile:
+      path: /etc/hosts
+      line: 127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+      create: yes
+  - name: Adding localhost IPV6 address to host file
+    lineinfile:
+      path: /etc/hosts
+      line: ::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+      create: yes
+  - name: Adding Control address to hosts file
+    lineinfile:
+      path: /etc/hosts
+      line: 192.168.55.200 control.example.com control
+      create: yes
+  - name: Adding node1 address to hosts file
+    lineinfile:
+      path: /etc/hosts
+      line: 192.168.55.201 node1.example.com node1
+      create: yes
+  - name: Adding node2 address to hosts file, Installing Packages...
+    lineinfile:
+      path: /etc/hosts
+      line: 192.168.55.202 node2.example.com node2
+      create: yes
+  - name: Installing DL1 Stream And Packages
+    shell: dnf install -y @idm:DL1; dnf install -y ipa-server ipa-server-dns bind-dyndb-ldap vsftpd createrepo pki-ca
+    tags: repo
+  - name: Configuring Repo For System
+    command: createrepo /var/www/html/rpms
+  - name: Enabling services
+    service: name={{item}} enabled=true
+    with_items:
+      - httpd
+      - vsftpd
+      - firewalld
+      - chronyd
+  - name: Starting Firewalld
+    service: name=firewalld state=started
+  - name: Enabling Firewall Services
+    command: firewall-cmd --permanent --add-service=http --add-service=https --add-service=ntp --add-service=dns --add-service=kerberos --add-service=ldap --add-service=ldaps --add-service=ftp
+  - name: Reloading Firewall
+    command: firewall-cmd --reload
+  - name: Configuring network
+    shell: nmcli con mod "System eth1" ipv4.addresses 192.168.55.200/24 ipv4.gateway 192.168.55.1 ipv4.dns 8.8.8.8 ipv4.dns-search example.com ipv4.method manual
+  - name: Reloaded Network.
+    shell: nmcli con up "System eth1"
+  - name: Permissions Fixed.
+    shell: chmod 644 /usr/lib/python3.6/site-packages/urllib3/packages/ssl_match_hostname.py;chmod u+x /usr/lib/python3.6/site-packages/urllib3/packages/ssl_match_hostname.py 
+  - name: Generating RSA Key
+    command : ssh-keygen -q -t rsa -f /home/user/.ssh/id_rsa -C "" -N ""
+    become: yes
+    become_user: user
+  - name: Disabling services
+    selinux:
+      state: disabled
+  - name: Rebooting machine
+    reboot:
+      reboot_timeout: 60
+  - name: IPV6 Enabled. Configuring IPA Server...
+    shell: sysctl net.ipv6.conf.lo.disable_ipv6=0 ; sysctl net.ipv6.conf.all.disable_ipv6=0
+  - name: IPA Server Configured
+    shell: ipa-server-install --setup-dns --allow-zone-overlap --auto-reverse --no-forwarders -a password --hostname=control.example.com -r EXAMPLE.COM -p password -n example.com -U 
+    ignore_errors: true
+    become: yes
+  - name: Restarting IPA Services
+    shell: sudo ipactl restart --ignore-service-failure -f
+  - name: Adding IPA user 'dave'
+    ipa_user:
+        name: dave
+        state: present
+        krbpasswordexpiration: 20200119235959
+        givenname: dave
+        sn: dave
+        mail:
+        - dave@example.com
+        telephonenumber:
+        - '+555123456'
+        sshpubkey:
+        password: password
+        uidnumber: 1001
+        gidnumber: 1000
+        ipa_host: control.example.com
+        ipa_user: admin
+        ipa_pass: password
+  - name: Adding IPA user 'lisa'
+    ipa_user:
+        name: lisa
+        state: present
+        krbpasswordexpiration: 20200119235959
+        givenname: lisa
+        sn: lisa
+        mail:
+        - lisa@example.com
+        telephonenumber:
+        - '+555123456'
+        sshpubkey:
+        password: password
+        uidnumber: 1002
+        gidnumber: 1001
+        ipa_host: control.example.com
+        ipa_user: admin
+        ipa_pass: password
+#  - name: Setting SELinux To Permissive
+#    shell: setenforce 0
+
+#    async: 1500
+#    poll: 0
+#    register: ipa_config_sleeper
+#    ignore_errors: yes
+#  - name: Still Working On IPA Configuration...It takes time ¯\_(ツ)_/¯
+#    async_status: jid={{ ipa_config_sleeper.ansible_job_id }}
+#    register: job_result
+#    until: job_result.finished
+#    retries: 200
+...
