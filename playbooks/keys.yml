@@ -21,3 +21,16 @@
     become: yes
     become_user: user
     ignore_errors: yes
+  - name: Welcome to the RHCE 8 Study/Test Environment!
+    debug:
+      msg:
+        - 'Next Steps: Accessing The Systems:'
+        - '- IPA - 192.168.55.200'
+        - '- System 1 - 192.168.55.201'
+        - '- System 2 - 192.168.55.202'
+        - '- Username - vagrant'
+        - '- Password - vagrant'
+        - '- For root - use `sudo` or `sudo su`'
+        - '- Access example - `ssh vagrant@192.168.55.201`'
+        - 'Repo is available to use from `http://control.example.com/rpms`'
+        - '- Happy Studying!'
