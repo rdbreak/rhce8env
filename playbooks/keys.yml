@@ -1,11 +1,13 @@
 ---
 - hosts: control
+  become: true
   tasks: 
   - name: Sending Key to node1
     expect:
       command: ssh-copy-id -i /home/user/.ssh/id_rsa.pub user@node1.example.com 
       responses:
-        'Password': 'password'
+        'Are you sure you want to continue connecting': 'yes'
+        'password': 'password'
 #        '\]\$': 'logout'
       timeout: 10
     become: yes
@@ -15,7 +17,8 @@
     expect:
       command: ssh-copy-id -i /home/user/.ssh/id_rsa.pub user@node2.example.com 
       responses:
-        'Password': 'password'
+        'Are you sure you want to continue connecting': 'yes'
+        'password': 'password'
 #        '\]\$': 'logout'
       timeout: 10
     become: yes
@@ -30,7 +33,7 @@
         - '- System 2 - 192.168.55.202'
         - '- Username - vagrant'
         - '- Password - vagrant'
-        - '- For root - use `sudo` or `sudo su`'
-        - '- Access example - `ssh vagrant@192.168.55.201`'
-        - 'Repo is available to use from `http://control.example.com/rpms`'
+        - '- For root - use \`sudo\` or \`sudo su\`'
+        - '- Access example - ssh vagrant@192.168.55.201'
         - '- Happy Studying!'
+...

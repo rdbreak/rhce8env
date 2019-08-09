@@ -2,7 +2,10 @@
 - hosts: control
   strategy: free
   gather_facts: false
+  become: true
   tasks:
+  - name: Setting Hostname
+    command: hostnamectl set-hostname control.example.com
   - name: Creating Ansible User
     user:
       name: user
@@ -12,9 +15,7 @@
   - name: Changing User Password
     shell: echo password | sudo passwd user --stdin
   - name: Fixing Resolv File
-    command: echo 'nameserver 8.8.8.8' > /etc/resolv.conf
-    become: yes
-    become_user: user
+    shell: echo 'nameserver 8.8.8.8' > /etc/resolv.conf
   - name: Finding Pip
     command: sudo curl https://bootstrap.pypa.io/get-pip.py -o /usr/bin/get-pip.py
     become: yes
@@ -37,13 +38,6 @@
     command: /bin/python3 -m pip install pexpect --user
     become: yes
     become_user: user
-#  - pip: 
-#      name: 
-#        - ansible
-#        - pexpect
-#    ignore_errors: yes
-#    become: yes
-#    become_user: user
   - name: Fixing hosts file
     lineinfile:
       dest: /etc/hosts
@@ -74,18 +68,10 @@
       path: /etc/hosts
       line: 192.168.55.202 node2.example.com node2
       create: yes
-  - name: Installing DL1 Stream And Packages
-    shell: dnf install -y @idm:DL1; dnf install -y ipa-server ipa-server-dns bind-dyndb-ldap vsftpd createrepo pki-ca
-    tags: repo
   - name: Configuring Repo For System
     command: createrepo /var/www/html/rpms
   - name: Enabling services
-    service: name={{item}} enabled=true
-    with_items:
-      - httpd
-      - vsftpd
-      - firewalld
-      - chronyd
+    shell: for i in firewalld httpd ; do systemctl enable --now $i;done
   - name: Starting Firewalld
     service: name=firewalld state=started
   - name: Enabling Firewall Services
@@ -105,63 +91,33 @@
   - name: Disabling services
     selinux:
       state: disabled
-  - name: Rebooting machine
-    reboot:
-      reboot_timeout: 60
-  - name: IPV6 Enabled. Configuring IPA Server...
-    shell: sysctl net.ipv6.conf.lo.disable_ipv6=0 ; sysctl net.ipv6.conf.all.disable_ipv6=0
-  - name: IPA Server Configured
-    shell: ipa-server-install --setup-dns --allow-zone-overlap --auto-reverse --no-forwarders -a password --hostname=control.example.com -r EXAMPLE.COM -p password -n example.com -U 
-    ignore_errors: true
-    become: yes
-  - name: Restarting IPA Services
-    shell: sudo ipactl restart --ignore-service-failure -f
-  - name: Adding IPA user 'dave'
-    ipa_user:
-        name: dave
-        state: present
-        krbpasswordexpiration: 20200119235959
-        givenname: dave
-        sn: dave
-        mail:
-        - dave@example.com
-        telephonenumber:
-        - '+555123456'
-        sshpubkey:
-        password: password
-        uidnumber: 1001
-        gidnumber: 1000
-        ipa_host: control.example.com
-        ipa_user: admin
-        ipa_pass: password
-  - name: Adding IPA user 'lisa'
-    ipa_user:
-        name: lisa
-        state: present
-        krbpasswordexpiration: 20200119235959
-        givenname: lisa
-        sn: lisa
-        mail:
-        - lisa@example.com
-        telephonenumber:
-        - '+555123456'
-        sshpubkey:
-        password: password
-        uidnumber: 1002
-        gidnumber: 1001
-        ipa_host: control.example.com
-        ipa_user: admin
-        ipa_pass: password
-#  - name: Setting SELinux To Permissive
-#    shell: setenforce 0
-
-#    async: 1500
-#    poll: 0
-#    register: ipa_config_sleeper
-#    ignore_errors: yes
-#  - name: Still Working On IPA Configuration...It takes time ¯\_(ツ)_/¯
-#    async_status: jid={{ ipa_config_sleeper.ansible_job_id }}
-#    register: job_result
-#    until: job_result.finished
-#    retries: 200
-...
+  - name: Creating Welcome Message
+    file:
+      path: /etc/profile.d/welcome.sh
+      state: touch
+      mode: 0755
+  - name: Building Welcome Message
+    blockinfile:
+      dest: /etc/profile.d/welcome.sh
+      block: |
+        #!/bin/bash
+        #
+        echo -e '       
+        #            _            _           _          _           _          _           _     
+        #          /\ \          /\ \        /\ \     _ /\ \        /\ \       /\ \        _\ \   
+        #         /  \ \        /  \ \      /  \ \   /\_\_\ \      /  \ \     /  \ \      /\__ \  
+        #        / /\ \ \      / /\ \ \    / /\ \ \_/ / /\__ \    / /\ \ \   / /\ \ \    / /_ \_\ 
+        #       / / /\ \ \    / / /\ \ \  / / /\ \___/ / /_ \ \  / / /\ \_\ / / /\ \ \  / / /\/_/ 
+        #      / / /  \ \_\  / / /  \ \_\/ / /  \/____/ / /\ \ \/ / /_/ / // / /  \ \_\/ / /      
+        #     / / /    \/_/ / / /   / / / / /    / / / / /  \/_/ / /__\/ // / /   / / / / /       
+        #    / / /         / / /   / / / / /    / / / / /     / / /_____// / /   / / / / / ____   
+        #   / / /________ / / /___/ / / / /    / / / / /     / / /\ \ \ / / /___/ / / /_/_/ ___/\ 
+        #  / / /_________/ / /____\/ / / /    / / /_/ /     / / /  \ \ / / /____\/ /_______/\__\/ 
+        #  \/____________\/_________/\/_/     \/_/\_\/      \/_/    \_\\/_________/\_______\/     
+        '"#
+        #
+        # You are logged into `hostname` as user `whoami`
+        # This system is running `cat /etc/redhat-release`
+        # kernel is `uname -r`
+        #
+        "
