@@ -63,7 +63,7 @@
       path: /etc/hosts
       line: 192.168.55.201 node1.example.com node1
       create: yes
-  - name: Adding node2 address to hosts file, Installing Packages...
+  - name: Adding node2 address to hosts file
     lineinfile:
       path: /etc/hosts
       line: 192.168.55.202 node2.example.com node2

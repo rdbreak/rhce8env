@@ -32,10 +32,6 @@ config.vm.define "node1" do |node1|
     yes| sudo mkfs.ext4 /dev/sdb
     SHELL
     node1.vm.synced_folder ".", "/vagrant"
-    node1.vm.provision :ansible_local do |ansible|
-      ansible.install = false
-      ansible.playbook = "/vagrant/playbooks/node1.yml"
-    end
  end
 
 config.vm.define "node2" do |node2|
@@ -63,10 +59,6 @@ config.vm.define "node2" do |node2|
     yes| sudo mkfs.ext4 /dev/sdb
     SHELL
     node2.vm.synced_folder ".", "/vagrant"
-    node2.vm.provision :ansible_local do |ansible|
-      ansible.playbook = "/vagrant/playbooks/node2.yml"
-      ansible.become = true
-    end
 end
 config.vm.define "control" do |control|
   control.vm.box = "generic/oracle8"
@@ -83,14 +75,13 @@ config.vm.define "control" do |control|
     control.customize ['modifyvm', :id,'--memory', '2048']
     end
   control.vm.synced_folder ".", "/vagrant"
-  control.vm.provision :ansible_local do |ansible|
-    ansible.install = false
-    ansible.playbook = "/vagrant/playbooks/control.yml"
-  end
-  control.vm.synced_folder ".", "/vagrant"
-  control.vm.provision :ansible_local do |ansible|
-    ansible.install = false
-    ansible.playbook = "/vagrant/playbooks/keys.yml"
-  end
+control.vm.provision :ansible_local do |ansible|
+  ansible.playbook = "/vagrant/playbooks/master.yml"
+  ansible.install = false
+  ansible.compatibility_mode = "2.0"
+  ansible.inventory_path = "/vagrant/inventory"
+  ansible.config_file = "/vagrant/ansible.cfg"
+  ansible.limit = "all"
+ end
 end
 end

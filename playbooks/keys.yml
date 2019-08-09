@@ -8,7 +8,6 @@
       responses:
         'Are you sure you want to continue connecting': 'yes'
         'password': 'password'
-#        '\]\$': 'logout'
       timeout: 10
     become: yes
     become_user: user
@@ -19,7 +18,6 @@
       responses:
         'Are you sure you want to continue connecting': 'yes'
         'password': 'password'
-#        '\]\$': 'logout'
       timeout: 10
     become: yes
     become_user: user
@@ -33,7 +31,8 @@
         - '- System 2 - 192.168.55.202'
         - '- Username - vagrant'
         - '- Password - vagrant'
-        - '- For root - use \`sudo\` or \`sudo su\`'
+        - '- For root - use `sudo` or `sudo su`'
         - '- Access example - ssh vagrant@192.168.55.201'
         - '- Happy Studying!'
+        
 ...
