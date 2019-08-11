@@ -1,25 +1,25 @@
 # RHCE 8 Study/Test Environment powered by Ansible and Vagrant. 
 
 ## Install the following software before setting up:
-###macOS
-Gatekeeper will block virtualbox from installing. All you have to do is go to Security & Provacy of System Preferences and click Allow under the General tab and rerun installation.
+###### macOS
+_Gatekeeper will block virtualbox from installing. All you have to do is go to Security & Provacy of System Preferences and click Allow under the General tab and rerun installation._
 - [Latest Version of Vagrant](https://www.vagrantup.com/downloads.html) - (`brew cask install vagrant`)
     - Vagrant Plugin - `vagrant plugin install vagrant-guest_ansible`
 - [Latest Version of Virtualbox](https://www.virtualbox.org/wiki/Downloads) (`brew cask install VirtualBox`)
 - Virtual Box Extension Pack (`brew cask install virtualbox-extension-pack`)
-###Install at once with the command below (Mac only): 
+###### Install at once with the command below (Mac only): 
 `brew install ansible ; brew install python ; brew cask install vagrant ; brew cask install VirtualBox ; brew cask install virtualbox-extension-pack`
 
-###CentOS/RHEL
+###### CentOS/RHEL
 - [Latest Version of Vagrant](https://www.vagrantup.com/downloads.html)
 - Ansible Guest Vagrant Plugin `vagrant plugin install vagrant-guest_ansible`
 - [Latest Version of Virtualbox and Virtual Box Extension Pack](https://www.virtualbox.org/wiki/Downloads)
-##Debian
+###### Debian
 - Vagrant - `sudo apt install vagrant`
 - Vagrant Plugin - `vagrant plugin install vagrant-guest_ansible`
 - [Latest Version of Virtualbox and Virtual Box Extension Pack](https://www.virtualbox.org/wiki/Downloads)
 
-Now you should be ready to follow the next steps and get the deployment up and running!
+_Now you should be ready to follow the next steps and get the deployment up and running!_
 
 ## Set Up Instructions
 1. Create a seperate `~/bin` directory and `cd` to it. 
@@ -33,7 +33,7 @@ _NOTE - You can use the VirtualBox console to interact with the VMs or through a
 
 The first time you run the vagrant up command, it will download the OS images for later use. In other words, it will take longest the first time around but will be faster when it is deployed again. You can run `vagrant destroy -f` to destroy your environment at anytime. **This will erase everything**. This environment is meant to be reuseable, If you run the `vagrant up --provider virtualbox` command after destroying the environment, the OS image will already be downloaded and environment will deploy faster. Once the setup is complete, the ipa server and client for realm rhce.example.com will already be setup and paired. Deployment should take around 15 minutes depending on your computer. You shouldn't need to access the IPA server during your practice exams. Everything should be provided that you would normally need during an actual exam. Hope this helps  in your studies!
 
-### It includes three systems:
+### Included systems:
 - control.example.com
 - node1.example.com
 - node2.example.com
