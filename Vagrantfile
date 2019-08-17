@@ -18,6 +18,7 @@ config.vm.define "node1" do |node1|
   node1.vm.provision :shell, :inline => "alternatives --set python /usr/bin/python3", run: "always"
   node1.vm.provision :shell, :inline => " yum install -y @idm:DL1 ;dnf install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm -y; yum install -y sshpass;", run: "always"
   node1.vm.provision :shell, :inline => "pip3 install ansible --user", run: "always", privileged: false
+  node1.vm.synced_folder ".", "/vagrant", type: "rsync", rsync__exclude: ".git/"
   node1.vm.provider "virtualbox" do |node1|
     node1.memory = "1024"
 
@@ -45,6 +46,7 @@ config.vm.define "node2" do |node2|
   node2.vm.provision :shell, :inline => "ln -s /usr/bin/python3.6 /usr/bin/python", run: "always"
   node2.vm.provision :shell, :inline => "yum install -y @idm:DL1 ;dnf install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm -y; yum install -y sshpass;", run: "always"
   node2.vm.provision :shell, :inline => "pip3 install ansible --user", run: "always", privileged: false
+  node2.vm.synced_folder ".", "/vagrant", type: "rsync", rsync__exclude: ".git/"
   node2.vm.provider "virtualbox" do |node2|
     node2.memory = "1024"
 
@@ -74,8 +76,8 @@ config.vm.define "control" do |control|
   control.vm.provider :virtualbox do |control|
     control.customize ['modifyvm', :id,'--memory', '2048']
     end
-  control.vm.synced_folder ".", "/vagrant"
-control.vm.provision :ansible_local do |ansible|
+  control.vm.synced_folder ".", "/vagrant", type: "rsync", rsync__exclude: ".git/"
+  control.vm.provision :ansible_local do |ansible|
   ansible.playbook = "/vagrant/playbooks/master.yml"
   ansible.install = false
   ansible.compatibility_mode = "2.0"
