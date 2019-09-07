@@ -16,28 +16,6 @@
     shell: echo password | sudo passwd user --stdin
   - name: Fixing Resolv File
     shell: echo 'nameserver 8.8.8.8' > /etc/resolv.conf
-  - name: Finding Pip
-    command: sudo curl https://bootstrap.pypa.io/get-pip.py -o /usr/bin/get-pip.py
-    become: yes
-    ignore_errors: yes
-  - name: Installing Pip
-    command: /bin/python3 /usr/bin/get-pip.py --user
-    become: yes
-    become_user: user
-    ignore_errors: yes
-  - name: Upgrading Pip
-    command: /bin/python3 -m pip install -U pip --user
-    become: no
-    become_user: user
-    ignore_errors: yes
-  - name: Installing Ansible
-    command: /bin/python3 -m pip install ansible --user
-    become: yes
-    become_user: user
-  - name: Installing Pexpect
-    command: /bin/python3 -m pip install pexpect --user
-    become: yes
-    become_user: user
   - name: Fixing hosts file
     lineinfile:
       dest: /etc/hosts
@@ -68,6 +46,16 @@
       path: /etc/hosts
       line: 192.168.55.202 node2.example.com node2
       create: yes
+  - name: Adding node3 address to hosts file
+    lineinfile:
+      path: /etc/hosts
+      line: 192.168.55.203 node3.example.com node3
+      create: yes
+  - name: Adding node4 address to hosts file
+    lineinfile:
+      path: /etc/hosts
+      line: 192.168.55.204 node4.example.com node4
+      create: yes
   - name: Configuring Repo For System
     command: createrepo /var/www/html/rpms
   - name: Enabling services
@@ -82,8 +70,6 @@
     shell: nmcli con mod "System eth1" ipv4.addresses 192.168.55.200/24 ipv4.gateway 192.168.55.1 ipv4.dns 8.8.8.8 ipv4.dns-search example.com ipv4.method manual
   - name: Reloaded Network.
     shell: nmcli con up "System eth1"
-  - name: Permissions Fixed.
-    shell: chmod 644 /usr/lib/python3.6/site-packages/urllib3/packages/ssl_match_hostname.py;chmod u+x /usr/lib/python3.6/site-packages/urllib3/packages/ssl_match_hostname.py 
   - name: Generating RSA Key
     command : ssh-keygen -q -t rsa -f /home/user/.ssh/id_rsa -C "" -N ""
     become: yes

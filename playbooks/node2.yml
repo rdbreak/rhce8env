@@ -14,39 +14,6 @@
       append: yes
   - name: Changing User Password
     shell: echo password | sudo passwd user --stdin
-  - name: Finding Pip
-    command: sudo curl https://bootstrap.pypa.io/get-pip.py -o /usr/bin/get-pip.py
-    become: yes
-    ignore_errors: yes
-  - name: Installing Pip
-    command: /bin/python3 /usr/bin/get-pip.py --user
-    become: yes
-    become_user: user
-    ignore_errors: yes
-  - name: Upgrading Pip
-    command: /bin/python3 -m pip install -U pip --user
-    become: no
-    become_user: user
-    ignore_errors: yes
-  - name: Installing Pexpect
-    command: /bin/python3 -m pip install pexpect --user
-    become: yes
-    become_user: user
-  - name: Creating Temporary Repo File
-    file:
-      path: /etc/yum.repos.d/control.repo
-      state: touch
-      mode: 0755
-  - name: Building Repo File
-    blockinfile:
-      dest: /etc/yum.repos.d/control.repo
-      block: |
-       [ipa]
-       name=control repo
-       baseurl=http://control.example.com/rpms
-       gpgcheck=0
-       enabled=1
-    tags: repo
   - name: Disabling services
     selinux:
       state: disabled
@@ -80,22 +47,28 @@
       path: /etc/hosts
       line: 192.168.55.202 node2.example.com node2
       create: yes
+  - name: Adding node3 address to hosts file
+    lineinfile:
+      path: /etc/hosts
+      line: 192.168.55.203 node3.example.com node3
+      create: yes
+  - name: Adding node4 address to hosts file
+    lineinfile:
+      path: /etc/hosts
+      line: 192.168.55.204 node4.example.com node4
+      create: yes
   - name: Configuring network
     command: nmcli con mod "System eth1" ipv4.addresses 192.168.55.202/24 ipv4.gateway 192.168.55.1 ipv4.method manual
   - name: Enabling IPV6
     shell: sysctl net.ipv6.conf.lo.disable_ipv6=0 ; sysctl net.ipv6.conf.all.disable_ipv6=0
   - name: Environment Packages Installed.
     shell: yum install -y man-pages 
-  - name: Erasing Repos
-    shell: rm -rf /etc/yum.repos.d/*
   - name: Fixing Resolv File
     shell: echo 'nameserver 8.8.8.8' > /etc/resolv.conf
   - name: Enabling services
     service: name=firewalld enabled=true
   - name: Starting services
     service: name=firewalld state=started
-  - name: Erasing Repos
-    shell: rm -rf /etc/yum.repos.d/*
     tags: repo
   - name: Creating Welcome Message
     file:
@@ -126,6 +99,5 @@
          # This system is running `cat /etc/redhat-release`
          # kernel is `uname -r`
          #
-         # Repo is available to use from http://control.example.com/rpms'
          "
 ...

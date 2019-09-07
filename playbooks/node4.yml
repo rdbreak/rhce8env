@@ -1,11 +1,11 @@
 ---
-- hosts: node1
+- hosts: node4
   strategy: free
   gather_facts: False
   become: true
   tasks:
   - name: Setting Hostname
-    command: hostnamectl set-hostname node1.example.com
+    command: hostnamectl set-hostname node4.example.com
   - name: Creating Ansible User
     user:
       name: user
@@ -58,7 +58,7 @@
       line: 192.168.55.204 node4.example.com node4
       create: yes
   - name: Configuring network
-    command: nmcli con mod "System eth1" ipv4.addresses 192.168.55.201/24 ipv4.gateway 192.168.55.1 ipv4.method manual
+    command: nmcli con mod "System eth1" ipv4.addresses 192.168.55.204/24 ipv4.gateway 192.168.55.1 ipv4.method manual
   - name: Enabling IPV6
     shell: sysctl net.ipv6.conf.lo.disable_ipv6=0 ; sysctl net.ipv6.conf.all.disable_ipv6=0
   - name: Environment Packages Installed.
@@ -83,17 +83,18 @@
         #!/bin/bash
         #
         echo -e '       
-        #           _            _           _           _       _              
-        #          /\ \     _   /\ \        /\ \        /\ \    / /\            
-        #         /  \ \   /\_\/  \ \      /  \ \____  /  \ \  / /  \           
-        #        / /\ \ \_/ / / /\ \ \    / /\ \_____\/ /\ \ \/_/ /\ \          
-        #       / / /\ \___/ / / /\ \ \  / / /\/___  / / /\ \_\_\/\ \ \         
-        #      / / /  \/____/ / /  \ \_\/ / /   / / / /_/_ \/_/    \ \ \        
-        #     / / /    / / / / /   / / / / /   / / / /____/\        \ \ \       
-        #    / / /    / / / / /   / / / / /   / / / /\____\/         \ \ \      
-        #   / / /    / / / / /___/ / /\ \ \__/ / / / /______        __\ \ \___  
-        #  / / /    / / / / /____\/ /  \ \___\/ / / /_______\      /___\_\/__/\ 
-        #  \/_/     \/_/\/_________/    \/_____/\/__________/      \_________\/ 
+        #           _            _           _           _           _           
+        #          /\ \     _   /\ \        /\ \        /\ \     _  /\ \         
+        #         /  \ \   /\_\/  \ \      /  \ \____  /  \ \   /\_\\ \ \        
+        #        / /\ \ \_/ / / /\ \ \    / /\ \_____\/ /\ \ \ / / / \ \ \       
+        #       / / /\ \___/ / / /\ \ \  / / /\/___  / / /\ \_/ / /   \ \ \      
+        #      / / /  \/____/ / /  \ \_\/ / /   / / / /_/_ \/_\ \ \____\ \ \     
+        #     / / /    / / / / /   / / / / /   / / / /____/\   \ \________\ \    
+        #    / / /    / / / / /   / / / / /   / / / /\____\/    \/________/\ \   
+        #   / / /    / / / / /___/ / /\ \ \__/ / / / /______              \ \ \  
+        #  / / /    / / / / /____\/ /  \ \___\/ / / /_______\              \ \_\ 
+        #  \/_/     \/_/\/_________/    \/_____/\/__________/               \/_/ 
+        #                                                                        
         '"#
         #
         # You are logged into \"`hostname`\" as user \"`whoami`\"
