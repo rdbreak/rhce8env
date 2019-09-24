@@ -32,6 +32,11 @@
       path: /etc/hosts
       line: ::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
       create: yes
+  - name: Adding repo address to hosts file
+    lineinfile:
+      path: /etc/hosts
+      line: 192.168.55.199 repo.example.com repo
+      create: yes
   - name: Adding Control address to hosts file
     lineinfile:
       path: /etc/hosts
@@ -52,11 +57,34 @@
       path: /etc/hosts
       line: 192.168.55.203 node3.example.com node3
       create: yes
-  - name: Adding node4 address to hosts file
-    lineinfile:
-      path: /etc/hosts
-      line: 192.168.55.204 node4.example.com node4
-      create: yes
+  - name: Erasing Repos
+    shell: rm -rf /etc/yum.repos.d/*
+  - name: Creating Temporary Repo File
+    file:
+      path: /etc/yum.repos.d/ipa.repo
+      state: touch
+      mode: 0755
+  - name: Building Repo File
+    blockinfile:
+      dest: /etc/yum.repos.d/ipa.repo
+      block: |
+       [base]
+       name=Base
+       baseurl=http://repo/BaseOS
+       gpgcheck=0
+       enabled=1
+       
+       [apps]
+       name=Apps
+       baseurl=http://repo/AppStream
+       gpgcheck=0
+       enabled=1
+    tags: repo
+#  - name: Adding node4 address to hosts file
+#    lineinfile:
+#      path: /etc/hosts
+#      line: 192.168.55.204 node4.example.com node4
+#      create: yes
   - name: Configuring network
     command: nmcli con mod "System eth1" ipv4.addresses 192.168.55.204/24 ipv4.gateway 192.168.55.1 ipv4.method manual
   - name: Enabling IPV6
@@ -76,6 +104,8 @@
       path: /etc/profile.d/welcome.sh
       state: touch
       mode: 0755
+  - name: Erasing Repos
+    shell: rm -rf /etc/yum.repos.d/*
   - name: Building Welcome Message
     blockinfile:
       dest: /etc/profile.d/welcome.sh
