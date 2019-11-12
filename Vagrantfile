@@ -17,7 +17,7 @@ config.vm.define "repo" do |repo|
   repo.vm.network "private_network", ip: "192.168.55.199"
 
   repo.vm.provider "virtualbox" do |repo|
-    repo.memory = "1024"
+    repo.memory = "512"
   end
 end
 
@@ -27,7 +27,7 @@ config.vm.define "node1" do |node1|
   node1.vm.network "private_network", ip: "192.168.55.201"
   node1.vm.synced_folder ".", "/vagrant", type: "rsync", rsync__exclude: ".git/"
   node1.vm.provider "virtualbox" do |node1|
-    node1.memory = "1024"
+    node1.memory = "512"
 
     if not File.exist?(file_to_disk1)
       node1.customize ['createhd', '--filename', file_to_disk1, '--variant', 'Fixed', '--size', 10 * 1024]
@@ -48,7 +48,7 @@ config.vm.define "node2" do |node2|
   node2.vm.network "private_network", ip: "192.168.55.202"
   node2.vm.synced_folder ".", "/vagrant", type: "rsync", rsync__exclude: ".git/"
   node2.vm.provider "virtualbox" do |node2|
-    node2.memory = "1024"
+    node2.memory = "512"
 
     if not File.exist?(file_to_disk2)
       node2.customize ['createhd', '--filename', file_to_disk2, '--variant', 'Fixed', '--size', 10 * 1024]
@@ -68,7 +68,7 @@ config.vm.define "node3" do |node3|
   node3.vm.network "private_network", ip: "192.168.55.203"
   node3.vm.synced_folder ".", "/vagrant", type: "rsync", rsync__exclude: ".git/"
   node3.vm.provider "virtualbox" do |node3|
-    node3.memory = "1024"
+    node3.memory = "512"
 end
 end
 #config.vm.define "node4" do |node4|
