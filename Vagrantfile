@@ -2,6 +2,7 @@ VAGRANTFILE_API_VERSION = "2"
 VAGRANT_DISABLE_VBOXSYMLINKCREATE = "1"
 file_to_disk1 = './disk-0-1.vdi'
 file_to_disk2 = './disk-0-2.vdi'
+file_to_disk3 = './disk-0-3.vdi'
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 # Use same SSH key for each machine
 config.ssh.insert_key = false
@@ -30,7 +31,7 @@ config.vm.define "node1" do |node1|
     node1.memory = "512"
 
     if not File.exist?(file_to_disk1)
-      node1.customize ['createhd', '--filename', file_to_disk1, '--variant', 'Fixed', '--size', 10 * 1024]
+      node1.customize ['createhd', '--filename', file_to_disk1, '--variant', 'Fixed', '--size', 5 * 1024]
     end
     node1.customize ['storagectl', :id, '--name', 'SATA Controller', '--add', 'sata', '--portcount', 2]
     node1.customize ['storageattach', :id,  '--storagectl', 'SATA Controller', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', file_to_disk1]
@@ -49,6 +50,18 @@ config.vm.define "node2" do |node2|
   node2.vm.synced_folder ".", "/vagrant", type: "rsync", rsync__exclude: ".git/"
   node2.vm.provider "virtualbox" do |node2|
     node2.memory = "512"
+
+    if not File.exist?(file_to_disk2)
+      node2.customize ['createhd', '--filename', file_to_disk2, '--variant', 'Fixed', '--size', 5 * 1024]
+    end
+    node2.customize ['storagectl', :id, '--name', 'SATA Controller', '--add', 'sata', '--portcount', 2]
+    node2.customize ['storageattach', :id,  '--storagectl', 'SATA Controller', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', file_to_disk2]
+  end
+  
+    node2.vm.provision "shell", inline: <<-SHELL
+    yes| sudo mkfs.ext4 /dev/sdb
+    SHELL
+    node2.vm.synced_folder ".", "/vagrant"
 end
 end
 
@@ -62,11 +75,13 @@ config.vm.define "node3" do |node3|
   node3.vm.provider "virtualbox" do |node3|
     node3.memory = "512"
 
-    if not File.exist?(file_to_disk2)
-      node3.customize ['createhd', '--filename', file_to_disk2, '--variant', 'Fixed', '--size', 10 * 1024]
+
+    if not File.exist?(file_to_disk3)
+      node3.customize ['createhd', '--filename', file_to_disk3, '--variant', 'Fixed', '--size', 5 * 1024]
     end
     node3.customize ['storagectl', :id, '--name', 'SATA Controller', '--add', 'sata', '--portcount', 2]
-    node3.customize ['storageattach', :id,  '--storagectl', 'SATA Controller', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', file_to_disk2]
+    node3.customize ['storageattach', :id,  '--storagectl', 'SATA Controller', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', file_to_disk3]
+
   end
   
     node3.vm.provision "shell", inline: <<-SHELL
@@ -74,7 +89,6 @@ config.vm.define "node3" do |node3|
     SHELL
     node3.vm.synced_folder ".", "/vagrant"
 end
-
 
 #config.vm.define "node4" do |node4|
 #  node4.vm.box = "rdbreak/rhel8node"
