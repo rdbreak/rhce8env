@@ -80,11 +80,11 @@
        gpgcheck=0
        enabled=1
     tags: repo
-#  - name: Adding node4 address to hosts file
-#    lineinfile:
-#      path: /etc/hosts
-#      line: 192.168.55.204 node4.example.com node4
-#      create: yes
+  - name: Adding node4 address to hosts file
+    lineinfile:
+      path: /etc/hosts
+      line: 192.168.55.204 node4.example.com node4
+      create: yes
   - name: Configuring network
     command: nmcli con mod "System eth1" ipv4.addresses 192.168.55.203/24 ipv4.gateway 192.168.55.1 ipv4.method manual
   - name: Enabling IPV6

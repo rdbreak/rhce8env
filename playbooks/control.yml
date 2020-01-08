@@ -56,11 +56,11 @@
       path: /etc/hosts
       line: 192.168.55.203 node3.example.com node3
       create: yes
-#  - name: Adding node4 address to hosts file
-#    lineinfile:
-#      path: /etc/hosts
-#      line: 192.168.55.204 node4.example.com node4
-#      create: yes
+  - name: Adding node4 address to hosts file
+    lineinfile:
+      path: /etc/hosts
+      line: 192.168.55.204 node4.example.com node4
+      create: yes
   - name: Erasing Repos
     shell: rm -rf /etc/yum.repos.d/*
   - name: Creating Temporary Repo File
