@@ -1,69 +1,61 @@
 ---
-- hosts: repo
+- name: Setting Up Repo Node
+  hosts: repo
   strategy: free
-  become: true
-  gather_facts: false
+  gather_facts: False
+  ignore_errors: true
   tasks:
   - name: Setting Hostname
-    command: hostnamectl set-hostname repo.example.com
-  - name: Configuring network
-    shell: nmcli con mod "System eth1" ipv4.addresses 192.168.55.199/24 ipv4.gateway 192.168.55.1 ipv4.dns 8.8.8.8 ipv4.method manual
-  - name: Fixing hosts file
-    lineinfile:
+    hostname: name=repo.example.com
+  - name: Creating User Account
+    user:
+      name: user
+      shell: /bin/bash
+      groups: wheel
+      append: yes
+  - name: Changing User Password
+    shell: echo password | sudo passwd user --stdin
+  - name: Disabling services
+    selinux:
+      state: disabled
+  - name: Building Host File
+    copy:
       dest: /etc/hosts
-      regexp: '^127\.0\.0\.1'
-      state: absent
-  - name: Adding localhost IPV4 address to host file
-    lineinfile:
-      path: /etc/hosts
-      line: 127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
-      create: yes
-  - name: Adding localhost IPV6 address to host file
-    lineinfile:
-      path: /etc/hosts
-      line: ::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
-      create: yes
-  - name: Adding repo address to hosts file
-    lineinfile:
-      path: /etc/hosts
-      line: 192.168.55.199 repo.example.com repo
-      create: yes
-  - name: Adding Control address to hosts file
-    lineinfile:
-      path: /etc/hosts
-      line: 192.168.55.200 control.example.com control
-      create: yes
-  - name: Adding node1 address to hosts file
-    lineinfile:
-      path: /etc/hosts
-      line: 192.168.55.201 node1.example.com node1
-      create: yes
-  - name: Adding node2 address to hosts file
-    lineinfile:
-      path: /etc/hosts
-      line: 192.168.55.202 node2.example.com node2
-      create: yes
-  - name: Adding node3 address to hosts file
-    lineinfile:
-      path: /etc/hosts
-      line: 192.168.55.203 node3.example.com node3
-      create: yes
-  - name: Adding node4 address to hosts file
-    lineinfile:
-      path: /etc/hosts
-      line: 192.168.55.204 node4.example.com node4
-      create: yes
+      content: "127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4\n:1         localhost localhost.localdomain localhost6 localhost6.localdomain6\n192.168.55.199 repo.example.com repo\n192.168.55.200 control.example.com control\n192.168.55.201 node1.example.com node1\n192.168.55.201 node2.example.com node2\n192.168.55.203 node3.example.com node3\n192.168.55.204 node4.example.com node4"
+      force: yes
   - name: Enabling services
-    shell: for i in httpd firewalld ; do systemctl enable $i;done
-  - name: Starting services
-    shell: for i in httpd firewalld ; do systemctl start $i;done
-    ignore_errors: true
+      service:
+        name: "{{ item }}"
+        state: started
+        enabled: yes
+      with_items:
+        - httpd
+        - firewalld
+  - name: Enabling services
+    service:
+      name: "{{ item }}"
+      state: started
+      enabled: yes
+    with_items:
+      - httpd
+      - firewalld
   - name: Starting Firewalld
-    service: name=firewalld state=started
-  - name: Enabling Firewall Services
-    command: firewall-cmd --permanent --add-service=http --add-service=https --add-service=ntp --add-service=dns --add-service=kerberos --add-service=ldap --add-service=ldaps --add-service=ftp
+    firewalld: 
+      service: "{{ item }}"
+      immediate: yes
+      permanent: yes
+      state: enabled
+    with_items:
+      - http 
+      - https 
+      - ntp 
+      - dns 
+      - kerberos 
+      - ldap 
+      - ldaps 
+      - ftp
   - name: Reloading Firewall
-    command: firewall-cmd --reload
+    service: name=firewalld state=restarted
   - name: Enabling IPV6
     shell: sysctl net.ipv6.conf.lo.disable_ipv6=0 ; sysctl net.ipv6.conf.all.disable_ipv6=0
   - name: Creating Welcome Message
@@ -95,9 +87,8 @@
          # Why are you here? You should be working on the system hosts...
          # Anyway, try not to reboot me or bad stuff can happen.
          #
-         # You are logged into \"`hostname`\" as user \"`whoami`\"
+         # You are logged into \"`hostname`\" as the \"`whoami`\" account.
          # This system is running `cat /etc/redhat-release`
-         # kernel is `uname -r`
          #
          "
 ...

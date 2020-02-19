@@ -1,6 +1,8 @@
 ---
-- hosts: control
+- name: Sending SSH Keys to Nodes
+  hosts: control
   become: true
+  ignore_errors: yes
   tasks: 
   - name: Sending Key to node1
     expect:
@@ -9,9 +11,7 @@
         'Are you sure you want to continue connecting': 'yes'
         'password': 'password'
       timeout: 10
-    become: yes
     become_user: user
-    ignore_errors: yes
   - name: Sending Key to node2
     expect:
       command: ssh-copy-id -i /home/user/.ssh/id_rsa.pub user@node2.example.com 
@@ -19,9 +19,7 @@
         'Are you sure you want to continue connecting': 'yes'
         'password': 'password'
       timeout: 10
-    become: yes
     become_user: user
-    ignore_errors: yes
   - name: Sending Key to node3
     expect:
       command: ssh-copy-id -i /home/user/.ssh/id_rsa.pub user@node3.example.com 
@@ -29,9 +27,15 @@
         'Are you sure you want to continue connecting': 'yes'
         'password': 'password'
       timeout: 10
-    become: yes
     become_user: user
-    ignore_errors: yes
+  - name: Sending Key to node4
+    expect:
+      command: ssh-copy-id -i /home/user/.ssh/id_rsa.pub user@node4.example.com 
+      responses:
+        'Are you sure you want to continue connecting': 'yes'
+        'password': 'password'
+      timeout: 10
+    become_user: user
   - name: Welcome to the RHCE 8 Study/Test Environment!
     debug:
       msg:

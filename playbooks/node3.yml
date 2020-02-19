@@ -1,12 +1,13 @@
 ---
-- hosts: node3
+- name: Setting Up Node 3
+  hosts: node3
   strategy: free
   gather_facts: False
-  become: true
+  ignore_errors: true
   tasks:
   - name: Setting Hostname
-    command: hostnamectl set-hostname node3.example.com
-  - name: Creating Ansible User
+    hostname: name=node3.example.com
+  - name: Creating User Account
     user:
       name: user
       shell: /bin/bash
@@ -17,46 +18,11 @@
   - name: Disabling services
     selinux:
       state: disabled
-  - name: Fixing hosts file
-    lineinfile:
+  - name: Building Host File
+    copy:
       dest: /etc/hosts
-      regexp: '^127\.0\.0\.1'
-      state: absent
-  - name: Adding localhost IPV4 address to host file
-    lineinfile:
-      path: /etc/hosts
-      line: 127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
-      create: yes
-  - name: Adding localhost IPV6 address to host file
-    lineinfile:
-      path: /etc/hosts
-      line: ::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
-      create: yes
-  - name: Adding repo address to hosts file
-    lineinfile:
-      path: /etc/hosts
-      line: 192.168.55.199 repo.example.com repo
-      create: yes
-  - name: Adding Control address to hosts file
-    lineinfile:
-      path: /etc/hosts
-      line: 192.168.55.200 control.example.com control
-      create: yes
-  - name: Adding node1 address to hosts file
-    lineinfile:
-      path: /etc/hosts
-      line: 192.168.55.201 node1.example.com node1
-      create: yes
-  - name: Adding node2 address to hosts file
-    lineinfile:
-      path: /etc/hosts
-      line: 192.168.55.202 node2.example.com node2
-      create: yes
-  - name: Adding node3 address to hosts file
-    lineinfile:
-      path: /etc/hosts
-      line: 192.168.55.203 node3.example.com node3
-      create: yes
+      content: "127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4\n:1         localhost localhost.localdomain localhost6 localhost6.localdomain6\n192.168.55.199 repo.example.com repo\n192.168.55.200 control.example.com control\n192.168.55.201 node1.example.com node1\n192.168.55.201 node2.example.com node2\n192.168.55.203 node3.example.com node3\n192.168.55.204 node4.example.com node4"
+      force: yes
   - name: Erasing Repos
     shell: rm -rf /etc/yum.repos.d/*
   - name: Creating Temporary Repo File
@@ -90,13 +56,10 @@
   - name: Enabling IPV6
     shell: sysctl net.ipv6.conf.lo.disable_ipv6=0 ; sysctl net.ipv6.conf.all.disable_ipv6=0
   - name: Environment Packages Installed.
-    shell: yum install -y man-pages 
+    yum: name=man-pages state=present 
     register: yum_sleeper
-  - name: Enabling services
-    service: name=firewalld enabled=true
   - name: Starting services
-    service: name=firewalld state=started
-    tags: repo
+    service: name=firewalld enabled=true state=started
   - name: Fixing Resolv File
     shell: echo 'nameserver 8.8.8.8' > /etc/resolv.conf
   - name: Creating Welcome Message
@@ -126,9 +89,8 @@
         #  \/_/     \/_/\/_________/    \/_____/\/__________/\_____________\/ 
         '"#
         #
-        # You are logged into \"`hostname`\" as user \"`whoami`\"
+        # You are logged into \"`hostname`\" as the \"`whoami`\" account.
         # This system is running `cat /etc/redhat-release`
-        # kernel is `uname -r`
         #
         "
 ...
