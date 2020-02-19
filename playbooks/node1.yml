@@ -1,12 +1,13 @@
 ---
-- hosts: node1
+- name: Setting Up Node 1
+  hosts: node1
   strategy: free
   gather_facts: False
-  become: true
+  ignore_errors: true
   tasks:
   - name: Setting Hostname
-    command: hostnamectl set-hostname node1.example.com
-  - name: Creating Ansible User
+    hostname: name=node1.ansi.example.com
+  - name: Creating User Account
     user:
       name: user
       shell: /bin/bash
@@ -20,7 +21,7 @@
   - name: Building Host File
     copy:
       dest: /etc/hosts
-      content: "127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4\n:1         localhost localhost.localdomain localhost6 localhost6.localdomain6\n192.168.55.199 repo.example.com repo\n192.168.55.200 control.example.com control\n192.168.55.201 node1.example.com node1\n192.168.55.201 node2.example.com node2\n192.168.55.203 node3.example.com node3\n192.168.55.204 node4.example.com node4"
+      content: "127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4\n:1         localhost localhost.localdomain localhost6 localhost6.localdomain6\n192.168.55.199 repo.ansi.example.com repo\n192.168.55.200 control.ansi.example.com control\n192.168.55.201 node1.ansi.example.com node1\n192.168.55.201 node2.ansi.example.com node2\n192.168.55.203 node3.ansi.example.com node3\n192.168.55.204 node4.ansi.example.com node4"
       force: yes
   - name: Erasing Repos
     shell: rm -rf /etc/yum.repos.d/*
@@ -33,8 +34,13 @@
     copy:
       dest: /etc/yum.repos.d/ipa.repo
       content: "[base]\nname=Base\nbaseurl=http://repo/BaseOS\ngpgcheck=0\nenabled=1\n\n[apps]\nname=Apps\nbaseurl=http://repo/AppStream\ngpgcheck=0\nenabled=1"
+      force: yes
   - name: Configuring network
     command: nmcli con mod "System eth1" ipv4.addresses 192.168.55.201/24 ipv4.gateway 192.168.55.1 ipv4.method manual
+  - name: Restarting Network
+    service:
+      name: NetworkManager
+      state: restarted
   - name: Enabling IPV6
     shell: sysctl net.ipv6.conf.lo.disable_ipv6=0 ; sysctl net.ipv6.conf.all.disable_ipv6=0
   - name: Environment Packages Installed.

@@ -6,7 +6,7 @@
   ignore_errors: true
   tasks:
   - name: Setting Hostname
-    hostname: name=repo.example.com
+    hostname: name=repo.ansi.example.com
   - name: Creating User Account
     user:
       name: user
@@ -21,16 +21,16 @@
   - name: Building Host File
     copy:
       dest: /etc/hosts
-      content: "127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4\n:1         localhost localhost.localdomain localhost6 localhost6.localdomain6\n192.168.55.199 repo.example.com repo\n192.168.55.200 control.example.com control\n192.168.55.201 node1.example.com node1\n192.168.55.201 node2.example.com node2\n192.168.55.203 node3.example.com node3\n192.168.55.204 node4.example.com node4"
+      content: "127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4\n:1         localhost localhost.localdomain localhost6 localhost6.localdomain6\n192.168.55.199 repo.ansi.example.com repo\n192.168.55.200 control.ansi.example.com control\n192.168.55.201 node1.ansi.example.com node1\n192.168.55.201 node2.ansi.example.com node2\n192.168.55.203 node3.ansi.example.com node3\n192.168.55.204 node4.ansi.example.com node4"
       force: yes
   - name: Enabling services
-      service:
-        name: "{{ item }}"
-        state: started
-        enabled: yes
-      with_items:
-        - httpd
-        - firewalld
+    service:
+      name: "{{ item }}"
+      state: started
+      enabled: yes
+    with_items:
+      - httpd
+      - firewalld
   - name: Enabling services
     service:
       name: "{{ item }}"
