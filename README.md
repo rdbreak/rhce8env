@@ -74,15 +74,23 @@ _NOTE this requires a free Github account_
 3. Click "Clone a repository from the Internet" and enter "rdbreak/rhce8env" and choose a location then "Clone".
 4. You are also able to easily pull changes when they're made available.
 
+## Notable Vagrant Commands to control the environment:
+- `vagrant up` - Boots and provisions the environment
+- `vagrant destroy -f` - Shuts down and destroys the environment
+- `vagrant halt` - Only shuts down the environment VMs (can be booted up with `vagrant up`)
+- `vagrant suspend` - Puts the VMs in a suspended state
+- `vagrant resume` - Takes VMs out of a suspended state
+
 ## Other Useful Information:
 You can also use the VirtualBox console to interact with the VMs or through a terminal. If you need to reset the root password, you would need to use the console. I'm constantly making upgrades to the environments, so every once and awhile run `git pull` in the repo directory to pull down changes. If you're using Windows, it's recommended to use Github Desktop so you can easily pull changes that are made to the environment. The first time you run the vagrant up command, it will download the OS images for later use. In other words, it will take longest the first time around but will be faster when it is deployed again. You can run `vagrant destroy -f` to destroy your environment at anytime. **This will erase everything**. This environment is meant to be reuseable, If you run the `vagrant up` command after destroying the environment, the OS image will already be downloaded and environment will deploy faster. Deployment should take around 15 minutes depending on your computer. You shouldn't need to access the IPA server during your practice exams. Everything should be provided that you would normally need during an actual exam. Hope this helps in your studies!
 
 ## Included systems:
-- repo.example.com
-- control.example.com
-- node1.example.com
-- node2.example.com
-- node3.example.com
+- repo.ansi.example.com
+- control.ansi.example.com
+- node1.ansi.example.com
+- node2.ansi.example.com
+- node3.ansi.example.com
+- node4.ansi.example.com
 
 ## System Details:
 > control
@@ -101,8 +109,12 @@ You can also use the VirtualBox console to interact with the VMs or through a te
 - 192.168.55.203
 - Gateway - 192.168.55.1
 - DNS - 8.8.8.8
+> node4
+- 192.168.55.204
+- Gateway - 192.168.55.1
+- DNS - 8.8.8.8
 
-There is a Repo/AppStream available to use from `http://repo.example.com/BaseOS` and `http://repo.example.com/AppStream`
+There is a Repo/AppStream available to use from `http://repo.ansi.example.com/BaseOS` and `http://repo.ansi.example.com/AppStream`
 
 ## Accessing the systems
 Remember to add the IP addresses to your local host file if you want to connect to the guest systems with the hostname.
