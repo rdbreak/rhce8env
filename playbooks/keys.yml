@@ -45,10 +45,10 @@
         - '- Node 2 - 192.168.55.202'
         - '- Node 3 - 192.168.55.203'
         - '- Node 4 - 192.168.55.204'
-        - '- Username/Password - vagrant/vagrant'
+        - '- Username/Password - user/password'
         - '--------------------------------------------------'
         - '- For root - use `sudo` or `sudo su`'
-        - '- Access example - ssh vagrant@192.168.55.200'
+        - '- Access example - ssh user@192.168.55.200'
         - '- Happy Studying!'
         
 ...
