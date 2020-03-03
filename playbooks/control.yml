@@ -69,9 +69,9 @@
     command : ssh-keygen -q -t rsa -f /home/user/.ssh/id_rsa -C "" -N ""
     become: yes
     become_user: user
-  - name: Disabling services
+  - name: Adjusting services
     selinux:
-      state: disabled
+      state: permissive
   - name: Creating Welcome Message
     file:
       path: /etc/profile.d/welcome.sh

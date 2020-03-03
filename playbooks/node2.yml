@@ -17,9 +17,9 @@
     shell: echo password | sudo passwd user --stdin
   - name: Changing Root Password
     shell: echo password | sudo passwd root --stdin
-  - name: Disabling services
+  - name: Adjusting services
     selinux:
-      state: disabled
+      state: permissive
   - name: Building Host File
     copy:
       dest: /etc/hosts
