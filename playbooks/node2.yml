@@ -20,13 +20,16 @@
   - name: Adjusting services
     selinux:
       state: permissive
+      policy: targeted
   - name: Building Host File
     copy:
       dest: /etc/hosts
       content: "127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4\n:1         localhost localhost.localdomain localhost6localhost6.localdomain6\n192.168.55.199 repo.ansi.example.com repo\n192.168.55.200 control.ansi.example.com control\n192.168.55.201 node1.ansi.example.com node1\n192.168.55.202 node2.ansi.example.com node2\n192.168.55.203 node3.ansi.example.com node3\n192.168.55.204 node4.ansi.example.com node4"
       force: yes
   - name: Erasing Repos
-    shell: rm -rf /etc/yum.repos.d/*
+    file: 
+      path: /etc/yum.repos.d/*
+      state: absent
   - name: Creating Temporary Repo File
     file:
       path: /etc/yum.repos.d/ipa.repo
@@ -45,21 +48,32 @@
       name: NetworkManager
       state: restarted
   - name: Enabling IPV6
-    shell: sysctl net.ipv6.conf.lo.disable_ipv6=0 ; sysctl net.ipv6.conf.all.disable_ipv6=0
+    sysctl:
+      name: "{{ item }}"
+      value: '0'
+      sysctl_set: yes
+    with_items:
+      - net.ipv6.conf.lo.disable_ipv6
+      - net.ipv6.conf.all.disable_ipv6
   - name: Environment Packages Installed.
     yum: name=man-pages state=present 
     register: yum_sleeper
   - name: Starting services
     service: name=firewalld enabled=true state=started
   - name: Fixing Resolv File
-    shell: echo 'nameserver 8.8.8.8' > /etc/resolv.conf
+    lineinfile:
+      path: /etc/resolv.conf
+      line: 'nameserver 8.8.8.8'
+      state: present
   - name: Creating Welcome Message
     file:
       path: /etc/profile.d/welcome.sh
       state: touch
       mode: 0755
   - name: Erasing Repos
-    shell: rm -rf /etc/yum.repos.d/*
+    file: 
+      path: /etc/yum.repos.d/*
+      state: absent
   - name: Building Welcome Message
     blockinfile:
       dest: /etc/profile.d/welcome.sh
