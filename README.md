@@ -87,6 +87,7 @@ _NOTE this requires a free Github account_
 4. You are also able to easily pull changes when they're made available.
 
 ## Notable Vagrant Commands to control the environment:
+- `ansible-playbook playbooks/reset.yml` - Used for resetting the environment after attempting the practice exam in the Red Hat Certs Slack workspace practice exam channel. 
 - `vagrant up` - Boots and provisions the environment
 - `vagrant destroy -f` - Shuts down and destroys the environment
 - `vagrant halt` - Only shuts down the environment VMs (can be booted up with `vagrant up`)
