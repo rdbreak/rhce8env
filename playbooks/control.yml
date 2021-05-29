@@ -38,6 +38,13 @@
       path: /etc/yum.repos.d/ipa.repo
       state: touch
       mode: 0755
+  - name: Adding the rhel-system-repos.rpm
+    copy:
+      src: rhel-system-roles-1.0.1-1.el8.noarch.rpm
+      dest: /home/vagrant
+      owner: vagrant
+      group: vagrant
+      mode: "0775"
   - name: Building Repo File
     copy:
       dest: /etc/yum.repos.d/ipa.repo
