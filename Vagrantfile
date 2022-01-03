@@ -13,6 +13,7 @@ config.vm.box_check_update = false
 config.vm.define "repo" do |repo|
   repo.vm.box = "rdbreak/rhel8repo"
 #  repo.vm.hostname = "repo.ansi.example.com"
+  repo.vm.provision :shell, :inline => "sudo rm -rf /EMPTY", run: "always"
   repo.vm.provision :shell, :inline => "sudo sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config; sudo systemctl restart sshd;", run: "always"
   repo.vm.provision :shell, :inline => "yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm -y; sudo yum install -y sshpass python3-pip python3-devel httpd sshpass vsftpd createrepo", run: "always"
   repo.vm.provision :shell, :inline => " python3 -m pip install -U pip ; python3 -m pip install pexpect; python3 -m pip install ansible", run: "always"
