@@ -4,25 +4,31 @@ file_to_disk1 = './disk-0-1.vdi'
 file_to_disk2 = './disk-0-2.vdi'
 file_to_disk3 = './disk-0-3.vdi'
 file_to_disk4 = './disk-0-4.vdi'
+file_to_disk5 = './disk-1-3.vdi'
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 # Use same SSH key for each machine
 config.ssh.insert_key = false
 config.vm.box_check_update = false
 
-# Repo Server
+# Repo
 config.vm.define "repo" do |repo|
-  repo.vm.box = "rdbreak/rhel8repo"
-#  repo.vm.hostname = "repo.ansi.example.com"
-  repo.vm.provision :shell, :inline => "sudo rm -rf /EMPTY", run: "always"
+
+  repo.vm.box = "rdbreak/rhel8repo"    
+  repo.vm.provider "virtualbox" do |repo|
+    repo.memory = "1024"
+    unless File.exist?(file_to_disk5)
+      repo.customize ['createhd', '--filename', file_to_disk5, '--variant', 'Standard', '--size', 2 * 1024]
+      repo.customize ['storagectl', :id, '--name', 'SATA Controller', '--add', 'sata', '--portcount', 1]
+      repo.customize ['storageattach', :id,  '--storagectl', 'SATA Controller', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', file_to_disk5]       
+    end      
+  end
+  repo.vm.provision :shell, :inline => "pvs | grep '/dev/sdb' && echo 'The disk was already expanded!' || (pvcreate /dev/sdb; vgextend rhel_rhel8 /dev/sdb; lvextend -l +100%FREE /dev/rhel_rhel8/root; xfs_growfs /dev/rhel_rhel8/root)"
+
   repo.vm.provision :shell, :inline => "sudo sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config; sudo systemctl restart sshd;", run: "always"
   repo.vm.provision :shell, :inline => "yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm -y; sudo yum install -y sshpass python3-pip python3-devel httpd sshpass vsftpd createrepo", run: "always"
   repo.vm.provision :shell, :inline => " python3 -m pip install -U pip ; python3 -m pip install pexpect; python3 -m pip install ansible", run: "always"
-  repo.vm.synced_folder ".", "/vagrant", type: "rsync", rsync__exclude: [".git/", "*.vdi"]
+  repo.vm.synced_folder ".", "/vagrant", type: "rsync", rsync__exclude: ".git/"
   repo.vm.network "private_network", ip: "192.168.55.199"
-
-  repo.vm.provider "virtualbox" do |repo|
-    repo.memory = "512"
-  end
 end
 
 # Node 1
