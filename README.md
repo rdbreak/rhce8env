@@ -46,6 +46,7 @@ VAGRANT_VERS="2.2.19" && \
     vagrant plugin install vagrant-guest-ansible ; \
     wget -O /etc/yum.repos.d/virtualbox.repo http://download.virtualbox.org/virtualbox/rpm/rhel/virtualbox.repo ; \
     yum install -y VirtualBox-6.1 && \
+    echo "* 0.0.0.0/0" >> "/etc/vbox/networks.conf" && \
     systemctl start packagekit
 ```
 ##### If you're using RHEL 8, use the script below:
@@ -62,6 +63,7 @@ VAGRANT_VERS="2.2.19" && \
     dnf install -y VirtualBox-6.1 && \
     /usr/lib/virtualbox/vboxdrv.sh setup ; \
     usermod -a -G vboxusers root ; \
+    echo "* 0.0.0.0/0" >> "/etc/vbox/networks.conf" && \
     systemctl start packagekit
 ```
 ##### Also, install the Virtualbox extension pack below
@@ -74,11 +76,13 @@ VAGRANT_VERS="2.2.19" && \
 4. Run `vagrant up` to deploy the environment (If the environment has a designated repo VM it will take the longest to deploy the first time only, this is because the repo system has all the packages available to the base release but will be quicker on subsequent deployments.)
 
 ## Windows/Fedora
-- If using Windows:
+### If using Windows:
 - [Install the Latest Version of Vagrant](https://www.vagrantup.com/downloads.html)
 - [Install the Latest Version of Virtualbox and Virtual Box Extension Pack](https://www.virtualbox.org/wiki/Downloads)
 - Then install the following vagrant plugin via PowerShell as Administrator `vagrant plugin install vagrant-guest_ansible`
-- If using Fedora, run `dnf update -y` to update your system, then run the script below as root to install everything at once:
+
+### If using Fedora,
+- run `dnf update -y` to update your system, then run the script below as root to install everything at once:
 ```shell
 dnf -y install wget git binutils gcc make patch libgomp glibc-headers glibc-devel kernel-headers kernel-devel dkms libvirt libvirt-devel ruby-devel libxslt-devel libxml2-devel ; \
     wget http://download.virtualbox.org/virtualbox/rpm/fedora/virtualbox.repo ; \
@@ -88,6 +92,7 @@ dnf -y install wget git binutils gcc make patch libgomp glibc-headers glibc-deve
     /usr/lib/virtualbox/vboxdrv.sh setup ; \
     dnf -y install vagrant ; \
     dnf remove -y rubygem-fog-core ; \
+    echo "* 0.0.0.0/0" >> "/etc/vbox/networks.conf" && \
     vagrant plugin install vagrant-guest_ansible
 ```
 
@@ -113,6 +118,7 @@ VAGRANT_VERS="2.2.19" && \
     sudo add-apt-repository "deb http://download.virtualbox.org/virtualbox/debian bionic contrib"; \
     sudo apt update; \
     sudo apt install -y virtualbox-6.0 ; \
+    echo "* 0.0.0.0/0" >> "/etc/vbox/networks.conf" && \
     vagrant plugin install vagrant-guest_ansible
 ```
 ##### Also, install the Virtualbox extension pack below
@@ -196,3 +202,6 @@ Error is usually "VT-x is not available. (VERR_VMX_NO_VMX)" or similar, when the
 
 Resolution seems to be either remove HyperV, or preventing its hypervisor from starting with the command:
 bcdedit /set hypervisorlaunchtype off, followed by a reboot.
+
+On AMD processors, the VMs can hung during reboots with the error:
+`watchdog : BUG : soft lockup - CPU stuck for 22-23 secs`
