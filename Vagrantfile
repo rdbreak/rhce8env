@@ -13,21 +13,21 @@ config.vm.box_check_update = false
 # Repo
 config.vm.define "repo" do |repo|
 
-  repo.vm.box = "rdbreak/rhel8repo"    
+  repo.vm.box = "rdbreak/rhel8repo"
   repo.vm.provider "virtualbox" do |repo|
     repo.memory = "1024"
     unless File.exist?(file_to_disk5)
       repo.customize ['createhd', '--filename', file_to_disk5, '--variant', 'Standard', '--size', 2 * 1024]
       repo.customize ['storagectl', :id, '--name', 'SATA Controller', '--add', 'sata', '--portcount', 1]
-      repo.customize ['storageattach', :id,  '--storagectl', 'SATA Controller', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', file_to_disk5]       
-    end      
+      repo.customize ['storageattach', :id,  '--storagectl', 'SATA Controller', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', file_to_disk5]
+    end
   end
-  repo.vm.provision :shell, :inline => "pvs | grep '/dev/sdb' && echo 'The disk was already expanded!' || (pvcreate /dev/sdb; vgextend rhel_rhel8 /dev/sdb; lvextend -l +100%FREE /dev/rhel_rhel8/root; xfs_growfs /dev/rhel_rhel8/root)"
+  repo.vm.provision :shell, :inline => "pvs | grep '/dev/sdb' && echo 'The disk was already expanded!' || (pvcreate /dev/sdb; vgextend rhel_rhel8 /dev/sdb; lvextend -l +100%FREE /dev/rhel_rhel8/root; xfs_growfs /)"
 
   repo.vm.provision :shell, :inline => "sudo sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config; sudo systemctl restart sshd;", run: "always"
   repo.vm.provision :shell, :inline => "yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm -y; sudo yum install -y sshpass python3-pip python3-devel httpd sshpass vsftpd createrepo", run: "always"
   repo.vm.provision :shell, :inline => " python3 -m pip install -U pip ; python3 -m pip install pexpect; python3 -m pip install ansible", run: "always"
-  repo.vm.synced_folder ".", "/vagrant", type: "rsync", rsync__exclude: ".git/"
+  repo.vm.synced_folder ".", "/vagrant", type: "rsync", rsync__exclude: [".git/", "*.vdi"]
   repo.vm.network "private_network", ip: "192.168.55.199"
 end
 
@@ -46,7 +46,7 @@ config.vm.define "node1" do |node1|
       node1.customize ['storageattach', :id,  '--storagectl', 'SATA Controller', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', file_to_disk1]
       end
   end
-  
+
     node1.vm.provision "shell", inline: <<-SHELL
     yes| sudo mkfs.ext4 /dev/sdb
     SHELL
@@ -68,7 +68,7 @@ config.vm.define "node2" do |node2|
       node2.customize ['storageattach', :id,  '--storagectl', 'SATA Controller', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', file_to_disk2]
       end
  end
- 
+
     node2.vm.provision "shell", inline: <<-SHELL
     yes| sudo mkfs.ext4 /dev/sdb
     SHELL
@@ -90,7 +90,7 @@ config.vm.define "node3" do |node3|
       node3.customize ['storageattach', :id,  '--storagectl', 'SATA Controller', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', file_to_disk3]
       end
   end
-  
+
     node3.vm.provision "shell", inline: <<-SHELL
     yes| sudo mkfs.ext4 /dev/sdb
     SHELL
@@ -112,7 +112,7 @@ config.vm.define "node4" do |node4|
       node4.customize ['storageattach', :id,  '--storagectl', 'SATA Controller', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', file_to_disk4]
       end
   end
-  
+
     node4.vm.provision "shell", inline: <<-SHELL
     yes| sudo mkfs.ext4 /dev/sdb
     SHELL
