@@ -1,0 +1,104 @@
+---
+# tasks file for sample-mysql
+
+- name: check partition
+  command: fdisk -l /dev/sdb1
+  register: partition_state
+  ignore_errors: yes
+  changed_when: false
+
+- debug:
+    var: partition_state.rc
+
+- name: Create partition
+  parted:
+    device: /dev/sdb
+    label: gpt
+    part_type: primary
+    number: 2
+    part_end: 800MB
+    flags: [ lvm ]
+    state: present
+  when: partition_state.rc == 1
+
+- name: Configure LVM volume group
+  lvg:
+    pvs: /dev/sdb1
+    vg: vg_database
+    #force: yes
+
+- name: Create the LV
+  lvol:
+    lv: lv_mysql
+    size: 100%VG
+    vg: vg_database
+
+- name: Creates the filesystem
+  filesystem:
+    fstype: xfs
+    dev: /dev/mapper/vg_database-lv_mysql
+
+    #- name: Create /mnt/mysql_backups
+    #  file:
+    #    path: /mnt/mysql_backups
+    #    state: directory
+
+- name: Control active and configured mount points
+  mount:
+    path: /mnt/mysql_backups
+    src: /dev/mapper/vg_database-lv_mysql
+    state: mounted
+    fstype: xfs
+    opts: defaults
+
+- name: Install MariaDB
+  yum:
+    name:
+      - mariadb-server
+      - python3-PyMySQL
+    state: present
+    update_cache: yes
+    #enablerepo: apps
+
+- name: MySQL server config file
+  template:
+    src: my.cnf.j2
+    dest: /etc/my.cnf.d/mariadb-server.cnf
+    backup: yes
+
+- name: Open 3306 on firewall
+  firewalld:
+    permanent: yes
+    service: mysql
+    immediate: yes
+    state: enabled
+
+- name: Enable mariadb
+  systemd:
+    name: mariadb
+    enabled: yes
+    state: started
+
+- name: Checks if the DB credentials exist
+  stat:
+    path: ~/.my.cnf
+  register: credentials_file
+
+- block:
+
+  - name: Setup the root password
+    mysql_user:
+      login_unix_socket: /var/lib/mysql/mysql.sock
+      name: root
+      password: "{{ database_password }}"
+
+  - name: Creates the DB credentials file
+    copy:
+      dest: ~/.my.cnf
+      content: |
+        [client]
+        user=root
+        password={{ database_password }}
+
+  when: not credentials_file.stat.exists
+

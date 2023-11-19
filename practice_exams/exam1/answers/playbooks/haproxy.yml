@@ -1,0 +1,20 @@
+---
+- hosts: all
+  become: yes
+
+  tasks:
+
+    - name: Confirms firewall is open
+      firewalld:
+        immediate: yes
+        permanent: yes
+        service: "{{ item }}"
+        state: enabled
+      with_items:
+        - http
+      when: "'proxy' in group_names"
+
+  roles:
+    - name: geerlingguy.haproxy
+      when: "'proxy' in group_names"
+

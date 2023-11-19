@@ -1,0 +1,24 @@
+---
+- hosts: all
+  become: yes
+  tasks:
+
+    - name: 
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+        insertafter: "{{ item.insertafter }}"
+        backup: yes
+      loop:
+        - { regexp: '^Banner*', line: 'Banner /etc/motd', insertafter: '^#Banner*' }
+        - { regexp: '^X11Forwarding*', line: 'X11Forwarding no', insertafter: '^#GatewayPorts*' }
+        - { regexp: '^MaxAuthTries*', line: 'MaxAuthTries 3', insertafter: '^#MaxAuthTries*' }
+      notify: "Restart SSHD"
+
+  handlers:
+    - name: Restarts SSHD
+      systemd:
+        name: sshd.service
+        state: restarted
+      listen: "Restart SSHD"

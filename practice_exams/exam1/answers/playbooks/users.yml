@@ -1,0 +1,86 @@
+---
+- hosts: all
+  become: yes
+
+  vars_files: 
+    - ../vars/user_list.yml
+    - ../vars/secret.yml
+
+
+  tasks:
+
+          #    - name: Print var
+          #      debug:
+          #        var: item.username
+          #        #msg: "{{ item.uid|select('startswith', 1) }}"
+          #      with_items: "{{ users }}"
+          #      when: item.uid | string | regex_search('^1')
+          #      #when: item.uid == 1201
+    
+
+    - name: Create webserver users
+      user:
+        name: "{{ item.username }}"
+        uid: "{{ item.uid }}"
+        groups: wheel
+        shell: '/bin/bash'
+        ssh_key_file: '.ssh/id_rsa'
+        update_password: on_create
+        password: "{{ user_password | password_hash('sha512') }}"
+      with_items: "{{ users }}"
+      when: 
+        - item.uid | string | regex_search('^1') and 'webservers' in group_names
+          
+    - name: Create database users
+      user:
+        name: "{{ item.username }}"
+        uid: "{{ item.uid }}"
+        groups: wheel
+        shell: '/bin/bash'
+        ssh_key_file: '.ssh/id_rsa'
+        password: "{{ database_password | password_hash('sha512') }}"
+        update_password: on_create
+      with_items: "{{ users }}"
+      when: 
+        - item.uid | string | regex_search('^2') and 'database' in group_names
+
+    - name: Creates the .ssh folder for webserver users
+      file:
+        path: "/home/{{ item.username }}/.ssh"
+        state: directory
+        owner: "{{ item.username }}"
+        mode: 0700
+      with_items: "{{ users }}"
+      when: 
+        - item.uid | string | regex_search('^1') and 'webservers' in group_names
+
+    - name: Creates the .ssh folder for database users
+      file:
+        path: "/home/{{ item.username }}/.ssh"
+        state: directory
+        owner: "{{ item.username }}"
+        mode: 0700
+      with_items: "{{ users }}"
+      when: 
+        - item.uid | string | regex_search('^2') and 'database' in group_names
+
+    - name: Copy SSH key for webservers user
+      copy:
+        src: ../id_rsa        
+        dest: "/home/{{ item.username }}/.ssh/id_rsa"
+        owner: "{{ item.username }}"
+        mode: 0700
+      with_items: "{{ users }}"
+      when: 
+        - item.uid | string | regex_search('^1') and 'webservers' in group_names
+   
+    - name: Copy SSH key for database user
+      copy:
+        src: ../id_rsa        
+        dest: "/home/{{ item.username }}/.ssh/id_rsa"
+        owner: "{{ item.username }}"
+        mode: 0700
+      with_items: "{{ users }}"
+      when: 
+        - item.uid | string | regex_search('^2') and 'database' in group_names
+

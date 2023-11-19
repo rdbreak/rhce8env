@@ -1,0 +1,18 @@
+---
+- hosts: all
+  become: yes
+  tasks:
+
+    - name: Installs packages
+      dnf:
+        name:
+          - tcpdump
+          - mailx
+      when: "'proxy' in group_names"
+
+    - name: Installs packages
+      dnf:
+        name:
+          - lsof
+          - mailx
+      when: "'database' in group_names"

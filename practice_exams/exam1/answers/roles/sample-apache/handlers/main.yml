@@ -1,0 +1,7 @@
+---
+# handlers file for sample-apache
+#
+- systemd:
+    name: httpd
+    state: reloaded
+  listen: "Restart HTTPD" 

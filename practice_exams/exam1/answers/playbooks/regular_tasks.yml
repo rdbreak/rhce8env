@@ -1,0 +1,14 @@
+---
+- hosts: proxy
+  become: yes
+
+  tasks:
+
+    - name: Creates cron for root
+      cron:
+        #hour: *
+        #minute: 0
+        name: Cron for task 7
+        special_time: 'hourly'
+        job: date &> /var/log/time.log
+

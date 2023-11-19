@@ -1,0 +1,17 @@
+---
+- hosts: database
+  become: yes
+
+  tasks:
+
+    - name: Create file
+      copy:
+        content: 'dev,test,qa,prod'
+        dest: /mnt/mysql_backups/database_list.txt
+
+    - name: Create a tar.gz archive of a single file.
+      archive:
+        path: /mnt/mysql_backups/database_list.txt
+        dest: /mnt/mysql_backups/archive.gz
+        format: gz
+

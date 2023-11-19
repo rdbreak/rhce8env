@@ -1,0 +1,19 @@
+---
+- hosts: all
+  become: yes
+
+  tasks:
+
+    - sysctl:
+        name: vm.swappiness
+        value: '10'
+        sysctl_set: yes
+        state: present
+        reload: yes
+      when: ansible_memtotal_mb > 512
+
+    - name: Displays less
+      debug:
+        msg: "Server memory less than 512MB"
+      when: ansible_memtotal_mb < 512
+
