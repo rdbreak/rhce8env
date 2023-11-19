@@ -1,0 +1,5 @@
+---
+
+hostname_fqdn: node2.ansi.example.com
+hostname_host: node2
+ansible_host: '192.168.55.202'
