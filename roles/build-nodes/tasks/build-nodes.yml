@@ -1,0 +1,189 @@
+---
+# tasks file for build-nodes
+
+##-- Configure networking ------------------------------------------------------
+
+- name: Setting Hostname
+  ansible.builtin.hostname:
+    name: "{{ hostname_fqdn }}"
+
+- name: Building Host File
+  ansible.builtin.copy:
+    src: "{{ role_path }}/files/hosts"
+    dest: /etc/hosts
+    mode: "0644"
+    owner: root
+    group: root
+    remote_src: true
+    force: true
+
+- name: Fixing Resolv File
+  ansible.builtin.lineinfile:
+    path: /etc/resolv.conf
+    line: nameserver 8.8.8.8
+    state: present
+
+- name: Configuring network
+  command: nmcli con mod 'System eth1' ipv4.addresses "{{ ansible_host }}"/24 ipv4.gateway 192.168.55.1 ipv4.method manual
+
+# - name: Configuring network
+#   nmcli:
+#     type: ethernet
+#     conn_name: 'System eth1'
+#     ifname: eth1
+#     ip4: "{{ ansible_host }}/24"
+#     gw4: 192.168.55.1
+#     state: present
+
+# Non control
+- name: Enabling IPV6
+  # ansible.posix.sysctl:
+  sysctl:
+    name: "{{ item }}"
+    value: "0"
+    reload: true
+    sysctl_set: true
+  with_items:
+    - net.ipv6.conf.lo.disable_ipv6
+    - net.ipv6.conf.all.disable_ipv6
+  when: "'control' not in group_names"
+
+- name: Restarting Network
+  ansible.builtin.service:
+    name: NetworkManager
+    state: restarted
+
+##-- Configure users -----------------------------------------------------------
+
+- name: Creating User Account
+  ansible.builtin.user:
+    name: user
+    shell: /bin/bash
+    groups: wheel
+    append: true
+    generate_ssh_key: true
+    password: "{{ user_password | password_hash('sha512') }}"
+
+- name: Changing Root Password
+  ansible.builtin.user:
+    name: root
+    password: "{{ root_password | password_hash('sha512') }}"
+
+##-- Configure SELinux ----------------------------------------------------------
+
+- name: Adjusting SELinux
+  # ansible.posix.selinux:
+  selinux:
+    state: permissive
+    policy: targeted
+  when: "'repo' not in group_names"
+
+- name: Disabling SELinux
+  # ansible.posix.selinux:
+  selinux:
+    state: disabled
+  when: "'repo' in group_names"
+
+- name: Fixing SELinux Contexts
+  # ansible.builtin.command: restorecon -Rv /var/www/html
+  command: restorecon -Rv /var/www/html
+  when: "'repo' in group_names"
+
+##-- Configure repo and packages -----------------------------------------------
+
+- name: Erasing Repos
+  ansible.builtin.file:
+    path: /etc/yum.repos.d/*
+    state: absent
+
+- name: Building Repo File
+  ansible.builtin.copy:
+    src: "{{ role_path }}/files/ipa.repo"
+    dest: /etc/yum.repos.d/ipa.repo
+    mode: "0644"
+    owner: root
+    group: root
+    remote_src: true
+    force: true
+
+# Non control
+- name: Environment Packages Installed.
+  ansible.builtin.dnf:
+    name: man-pages
+    state: present
+  register: yum_sleeper                                  # What is this for
+
+- name: Adding the rhel-system-repos.rpm
+  copy:
+    src: rhel-system-roles-1.0.1-1.el8.noarch.rpm
+    dest: /home/vagrant/rhel-system-roles-1.0.1-1.el8.noarch.rpm
+    owner: vagrant
+    group: vagrant
+    mode: "0775"
+
+##-- Configure services --------------------------------------------------------
+
+- name: Starting and enabling firewalld services
+  ansible.builtin.service:
+    name: firewalld
+    enabled: true
+    state: restarted
+
+- name: Starting httpd services
+  ansible.builtin.service:
+    name: "{{ item }}"
+    state: started
+    enabled: true
+  with_items:
+    - httpd
+  when: "'control' in group_names or 'repo' in group_names"
+
+- name: Enabling generic Firewalld Services
+  # ansible.posix.firewalld:
+  firewalld:
+    service: "{{ item }}"
+    immediate: true
+    permanent: true
+    state: enabled
+  with_items:
+    - http
+    - https
+    - ntp
+    - dns
+    - ftp
+  when: "'control' in group_names or 'repo' in group_names"
+
+- name: Starting auth Firewalld Services
+  # ansible.posix.firewalld:
+  firewalld:
+    service: "{{ item }}"
+    immediate: true
+    permanent: true
+    state: enabled
+  with_items:
+    - kerberos
+    - ldap
+    - ldaps
+  when: "'repo' in group_names"
+
+- name: Reloading Firewall
+  ansible.builtin.service:
+    name: firewalld
+    state: restarted
+
+##-- Wrap up -------------------------------------------------------------------
+
+- name: Erasing Repos
+  ansible.builtin.file:
+    path: /etc/yum.repos.d/*
+    state: absent
+
+- name: Copy Welcome Message
+  ansible.builtin.copy:
+    src: "{{ role_path }}/files/welcome-{{ hostname_host }}.sh"
+    dest: /etc/profile.d/welcome.sh
+    mode: "0755"
+    owner: root
+    group: root
+    remote_src: true
+    force: true

@@ -1,0 +1,11 @@
+[base]
+name=Base
+baseurl=http://repo/BaseOS
+gpgcheck=0
+enabled=1
+
+[apps]
+name=Apps
+baseurl=http://repo/AppStream
+gpgcheck=0
+enabled=1

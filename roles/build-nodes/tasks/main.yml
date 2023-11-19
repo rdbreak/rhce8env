@@ -1,0 +1,11 @@
+---
+# tasks file for build-nodes
+
+# - ansible.builtin.include_tasks:
+- include_tasks:
+    file: build-nodes.yml
+
+# - ansible.builtin.include_tasks:
+- include_tasks:
+    file: keys.yml
+  when: "'control' in group_names"

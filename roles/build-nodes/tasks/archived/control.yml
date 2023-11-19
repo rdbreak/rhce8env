@@ -1,0 +1,114 @@
+---
+
+- name: Setting Hostname
+  ansible.builtin.hostname:
+    name: "{{ hostname_fqdn }}"
+
+- name: Creating User Account
+  ansible.builtin.user:
+    name: user
+    shell: /bin/bash
+    groups: wheel
+    append: true
+    password: "{{ user_password | password_hash('sha512') }}"
+
+- name: Changing Root Password
+  ansible.builtin.user:
+    name: root
+    password: "{{ root_password | password_hash('sha512') }}"in
+
+- name: Adjusting SELinux
+  ansible.posix.selinux:
+    state: permissive
+    policy: targeted
+
+- name: Building Host File
+  ansible.builtin.copy:
+    src: "{{ role_path }}/files/hosts"
+    dest: /etc/hosts
+    mode: "0644"
+    owner: root
+    group: root
+    force: true
+
+- name: Fixing Resolv File
+  ansible.builtin.lineinfile:
+    path: /etc/resolv.conf
+    line: nameserver 8.8.8.8
+    state: present
+
+- name: Erasing Repos
+  ansible.builtin.file:
+    path: /etc/yum.repos.d/*
+    state: absent
+
+- name: Building Repo File
+  ansible.builtin.copy:
+    src: "{{ role_path }}/files/ipa.repo"
+    dest: /etc/yum.repos.d/ipa.repo
+    mode: "0644"
+    owner: root
+    group: root
+    force: true
+
+- name: Adding the rhel-system-repos.rpm
+  ansible.builtin.copy:
+    src: rhel-system-roles-1.0.1-1.el8.noarch.rpm
+    dest: /home/vagrant
+    owner: vagrant
+    group: vagrant
+    mode: "0775"
+
+- name: Configuring network
+  ansible.builtin.command: nmcli con mod 'System eth1' ipv4.addresses 192.168.55.200/24 ipv4.gateway 192.168.55.1 ipv4.dns 8.8.8.8 ipv4.dns-search ansi.example.com
+    ipv4.method manual
+
+- name: Restarting Network
+  ansible.builtin.service:
+    name: NetworkManager
+    state: restarted
+
+- name: Starting services
+  ansible.builtin.service:
+    name: "{{ item }}"
+    state: started
+    enabled: true
+  with_items:
+    - firewalld
+    - httpd   # control only
+
+# Control only
+- name: Enabling Firewall Services
+  ansible.posix.firewalld:
+    service: "{{ item }}"
+    immediate: true
+    permanent: true
+    state: enabled
+  with_items:
+    - http
+    - https
+    - ntp
+    - dns
+    - ftp
+  when: "'control' in group_names"
+
+- name: Reloading Firewall
+  ansible.builtin.service:
+    name: firewalld
+    state: restarted
+  when: "'control' in group_names or 'repo' in group_names"
+
+
+- name: Erasing Repos
+  ansible.builtin.file:
+    path: /etc/yum.repos.d/*
+    state: absent
+
+- name: Copy Welcome Message
+  ansible.builtin.copy:
+    src: "{{ role_path }}/files/welcome-{{ hostname_host }}.sh"
+    dest: /etc/profile.d/welcome.sh
+    mode: "0755"
+    owner: root
+    group: root
+    force: true
