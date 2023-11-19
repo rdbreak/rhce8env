@@ -1,0 +1,10 @@
+---
+
+- name: Setting Up Node
+  hosts: all
+  become: true
+  gather_facts: false
+  ignore_errors: true
+
+  roles:
+    - build-nodes

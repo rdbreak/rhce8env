@@ -1,0 +1,39 @@
+---
+# tasks file for sample-apache
+
+- name: Installs packages
+  dnf:
+    name:
+      - httpd
+      - mod_ssl
+      - php
+    update_cache: yes
+
+- name: Enables httpd
+  systemd:
+    name: httpd
+    enabled: yes
+
+- name: Open services 
+  firewalld:
+    immediate: yes
+    permanent: yes
+    service: "{{ item }}" 
+    state: enabled
+  with_items:
+    - http
+    - https
+
+- name: changes port
+  lineinfile:
+    path: /etc/httpd/conf/httpd.conf
+    regex: '^Listen*'
+    backup: yes
+    line: "Listen {{ ansible_eth1.ipv4.address }}:80"
+  notify: "Restart HTTPD"
+ 
+- name: Create index.html
+  template:
+    src: index.html.j2
+    dest: /var/www/html/index.html
+  notify: "Restart HTTPD"

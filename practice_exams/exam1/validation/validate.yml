@@ -1,0 +1,1236 @@
+---
+- name: RHCE Exam 1 Validation
+  hosts: control
+  become: true
+  gather_facts: true
+
+  tasks:
+
+#-- Task 1 ---------------------------------------------------------------------
+
+    - name: Task 1 - Ansible Installation and Configuration
+      block:
+
+        - name: Checks that automation user exists
+          user:
+            name: automation
+          register: automation_user_on_control
+          check_mode: true
+          failed_when: automation_user_on_control.changed == true
+
+        - name: Run stat for files
+          stat:
+            path: "{{ item }}"
+          loop:
+            - '/home/automation/plays/ansible.cfg'
+            - '/home/automation/plays/inventory'
+          register: check_file_exists
+
+        - name: Checking that all files were created
+          assert:
+            quiet: true
+            that:
+              - "{{ item.stat.isreg }}"
+          loop: "{{ check_file_exists.results }}"
+          loop_control:
+            label: "{{ item.stat.path }}"
+
+        - name: Run stat for folders
+          stat:
+            path: "{{ item }}"
+          loop:
+            - '/home/automation/plays/'
+            - '/home/automation/plays/playbooks'
+          register: check_dir_exists
+
+        - name: Checking that required directories were created
+          assert:
+            quiet: true
+            that:
+              - "{{ item.stat.isdir }}"
+          loop: "{{ check_dir_exists.results }}"
+          loop_control:
+            label: "{{ item.stat.path }}"
+
+        - command: cat /home/automation/plays/ansible.cfg
+          register: ansible_config_content
+          changed_when: false
+
+        - name: Check ansible.cfg configuration
+          assert:
+            that:
+              - "{{ ansible_config_content.stdout_lines}} | string | regex_search('{{ item }}')"
+          loop:
+            - 'roles_path *= *\./*roles'
+            - 'become *= *.alse'
+            - 'forks *= *10'
+            - 'remote_user *= *automation'
+
+      rescue:
+        - name: Print when errors
+          fail:
+            msg: 'Found errors for Task 1 on control node'
+
+        # - name: Force a failure in middle of recovery
+          # command: /bin/false
+
+      tags: task1
+
+
+#-- Task 2 ---------------------------------------------------------------------
+
+    - name: Task 2 - Ad-Hoc Commands on control node
+      block:
+
+        - name: Run stat for files
+          stat:
+            path: "{{ item }}"
+          loop:
+            - '/home/automation/plays/adhoc.sh'
+            - '/home/automation/plays/id_rsa'
+            - '/home/automation/plays/id_rsa.pub'
+          register: check_file_exists
+
+        - name: Checking that all files were created
+          assert:
+            quiet: true
+            that:
+              - "{{ item.stat.isreg }}"
+            fail_msg: "Missing {{ item.stat.path }} "
+          loop: "{{ check_file_exists.results }}"
+          loop_control:
+            label: "{{ item.stat.path }}"
+
+        - name: Copies key
+          copy:
+            src: /home/automation/plays/id_rsa
+            dest: /vagrant/practice_exams/exam1/validation/automation_id_rsa
+            owner: vagrant
+            group: vagrant
+            remote_src: true
+            mode: 0600
+            force: yes
+          changed_when: false
+
+      rescue:
+        - name: Print when errors
+          fail:
+            msg: 'Found errors for Task 2 on control node'
+
+      tags: task2
+
+- hosts: proxy:database:webservers
+  become: true
+  remote_user: automation
+
+  vars:
+    - ansible_ssh_private_key_file: /vagrant/practice_exams/exam1/validation/automation_id_rsa
+
+  tasks:
+    - name: Task 2 - Ad-Hoc Commands on other nodes
+      block:
+
+        - name: Checks login
+          shell: hostname > /dev/null
+          # remote_user: automation
+          # vars:
+            # - ansible_ssh_private_key_file: /home/automation/plays/id_rsa
+          changed_when: false
+
+      rescue:
+        - name: Print when errors
+          fail:
+            msg: 'Found errors for Task 2'
+
+      tags: task2
+
+#-- Task 3 ---------------------------------------------------------------------
+
+
+    - name: Task 3 - File Content
+      block:
+
+        - command: cat /etc/motd
+          register: motd_content
+          changed_when: false
+
+        - name: Check motd content
+          assert:
+            that:
+              - "{{ motd_content.stdout_lines}} | string | regex_search('Welcome to HAProxy server')"
+          when: "'proxy' in group_names"
+
+        - name: Check motd content for database
+          assert:
+            that:
+              - "{{ motd_content.stdout_lines}} | string | regex_search('Welcome to (MySQL|Apache server)')"
+          when: "'database' in group_names or 'webservers' in group_names"
+
+      rescue:
+        - name: Print when errors
+          fail:
+            msg: 'Found errors for Task 3'
+
+      tags: task3
+
+#-- Task 4 ---------------------------------------------------------------------
+
+    - name: Task 4 - Configure SSH Server
+      block:
+
+        - command: cat /etc/ssh/sshd_config
+          register: sshd_content
+          changed_when: false
+
+        - name: Check /etc/ssh/sshd_config configuration
+          assert:
+            that:
+              - "{{ sshd_content.stdout_lines}} | string | regex_search('{{ item }}')"
+          loop:
+            - 'Banner /etc/motd'
+            - 'X11Forwarding no'
+            - 'MaxAuthTries 3'
+
+      rescue:
+        - name: Print when errors
+          fail:
+            msg: 'Found errors for Task 4'
+
+      tags: task4
+
+
+#-- Task 5 ---------------------------------------------------------------------
+
+- hosts: control
+  gather_facts: false
+  become: true
+
+  tasks:
+
+    - name: Task 5 - Ansible Vault
+      block:
+
+        - name: Run stat for files
+          stat:
+            path: "{{ item }}"
+          loop:
+            - '/home/automation/plays/vars/secret.yml'
+            - '/home/automation/plays/vault_key'
+          register: check_file_exists
+
+        - name: Checking that all files were created
+          assert:
+            quiet: true
+            that:
+              - "{{ item.stat.isreg }}"
+          loop: "{{ check_file_exists.results }}"
+          loop_control:
+            label: "{{ item.stat.path }}"
+
+        - command: cat /home/automation/plays/ansible.cfg
+          register: ansible_config_content
+          changed_when: false
+
+        - name: Check ansible.cfg configuration
+          assert:
+            that:
+              - "{{ ansible_config_content.stdout_lines}} | string | regex_search('{{ item }}')"
+          loop:
+            - 'vault_password_file *= *\./*vault_key'
+
+      rescue:
+        - name: Print when errors
+          fail:
+            msg: 'Found errors for Task 5'
+
+      tags: task5
+
+#-- Task 6 ---------------------------------------------------------------------
+
+    - name: Task 6 - Users and Groups on control node
+      block:
+
+        - name: Run stat for files
+          stat:
+            path: "{{ item }}"
+          loop:
+            - '/home/automation/plays/vars/user_list.yml'
+          register: check_file_exists
+
+        - name: Checking that all files were created
+          assert:
+            quiet: true
+            that:
+              - "{{ item.stat.isreg }}"
+          loop: "{{ check_file_exists.results }}"
+          loop_control:
+            label: "{{ item.stat.path }}"
+
+      rescue:
+        - name: Print when errors
+          fail:
+            msg: 'Found errors for Task 6'
+
+      tags: task6
+
+
+- hosts: proxy:database:webservers
+  gather_facts: false
+  become: true
+
+  vars:
+    - users:
+      - username: alice
+        uid: 1201
+      - username: vincent
+        uid: 1202
+      - username: sandy
+        uid: 2201
+      - username: patrick
+        uid: 2202
+
+  tasks:
+
+    - name: Task 6 - Users and Groups on other nodes
+      block:
+
+      - name: Check webserver users
+        user:
+          name: "{{ item.username }}"
+          uid: "{{ item.uid }}"
+          groups: wheel
+          shell: '/bin/bash'
+          ssh_key_file: '.ssh/id_rsa'
+        with_items: "{{ users }}"
+        register: user_output
+        when:
+          - item.uid | string | regex_search('^1') and 'webservers' in group_names
+        check_mode: true
+        failed_when: user_output.changed == true
+
+      - name: Check database users
+        user:
+          name: "{{ item.username }}"
+          uid: "{{ item.uid }}"
+          groups: wheel
+          shell: '/bin/bash'
+          ssh_key_file: '.ssh/id_rsa'
+        with_items: "{{ users }}"
+        register: user_output
+        when:
+          - item.uid | string | regex_search('^2') and 'database' in group_names
+        check_mode: true
+        failed_when: user_output.changed == true
+
+      rescue:
+        - name: Print when errors
+          fail:
+            msg: 'Found errors for Task 6'
+
+      tags: task6
+
+
+#-- Task 7 ---------------------------------------------------------------------
+
+- hosts: proxy
+  gather_facts: false
+  become: true
+
+  tasks:
+
+    - name: Task 7 - Scheduled Tasks
+      block:
+
+      - name: Creates cron for root
+        cron:
+          name: Cron for task 7
+          special_time: 'hourly'
+          job: date &> /var/log/time.log
+        register: crontab_output
+        check_mode: true
+        failed_when: crontab_output.changed == true
+
+      rescue:
+        - name: Print when errors
+          fail:
+            msg: 'Found errors for Task 7'
+
+      tags: task7
+
+
+#-- Task 8 ---------------------------------------------------------------------
+
+- hosts: proxy:database:webservers
+  gather_facts: false
+  become: true
+
+  tasks:
+
+    - name: Task 8 - Software Repositories
+      block:
+
+        - name: Checking if IPA repo was disabled
+          lineinfile:
+            path: /etc/yum.repos.d/ipa.repo
+            regexp: '^enabled=*'
+            line: 'enabled=0'
+          register: check_ipa_repo
+          check_mode: true
+          failed_when: check_ipa_repo.changed == true
+
+        - command: cat /etc/yum.repos.d/rpms.repo
+          register: rpms_repo_content
+          changed_when: false
+
+        - name: Check ansible.cfg configuration
+          assert:
+            that:
+              - "{{ rpms_repo_content.stdout_lines}} | string | regex_search('{{ item }}')"
+          loop:
+            - '[BaseOS]'
+            - 'name *= *BaseOS on repo.ansi.example.com'
+            - 'baseurl*= *http://repo.ansi.example.com/BaseOS'
+            - '[AppStream]'
+            - 'name *= *AppStream on repo.ansi.example.com'
+            - 'baseurl*= *http://repo.ansi.example.com/AppStream'
+            - 'enabled*= *1'
+
+      rescue:
+        - name: Print when errors
+          fail:
+            msg: 'Found errors for Task 8'
+
+      tags: task8
+
+#-- Task 9 ---------------------------------------------------------------------
+
+- hosts: control
+  gather_facts: false
+  become: true
+
+  tasks:
+
+    - name: Task 9 - Create and Work with Roles - MariaDB on control node
+      block:
+
+        - name: Run stat for files
+          stat:
+            path: "{{ item }}"
+          loop:
+            - '/home/automation/plays/playbooks/mysql.yml'
+          register: check_file_exists
+
+        - name: Checking that all files were created
+          assert:
+            quiet: true
+            that:
+              - "{{ item.stat.isreg }}"
+          loop: "{{ check_file_exists.results }}"
+          loop_control:
+            label: "{{ item.stat.path }}"
+
+        - name: Run stat for folders
+          stat:
+            path: "{{ item }}"
+          loop:
+            - '/home/automation/plays/roles/sample-mysql'
+          register: check_dir_exists
+
+        - name: Checking that required directories were created
+          assert:
+            quiet: true
+            that:
+              - "{{ item.stat.isdir }}"
+          loop: "{{ check_dir_exists.results }}"
+          loop_control:
+            label: "{{ item.stat.path }}"
+
+      rescue:
+        - name: Print when errors
+          fail:
+            msg: 'Found errors for Task 9'
+
+      tags: task9
+
+- hosts: database
+  gather_facts: false
+  become: true
+
+  vars:
+    - database_password: devops
+
+  tasks:
+
+    - name: Task 9 - Create and Work with Roles - MariaDB on database nodes
+      block:
+
+        - name: Checks partition
+          command: fdisk -l /dev/sdb1
+          changed_when: false
+
+        - name: Checks the LVM volume group
+          lvg:
+            pvs: /dev/sdb1
+            vg: vg_database
+          check_mode: true
+
+        - name: Checks the LV
+          lvol:
+            lv: lv_mysql
+            size: 100%VG
+            vg: vg_database
+          check_mode: true
+
+        - name: Checks the filesystem
+          filesystem:
+            fstype: xfs
+            dev: /dev/mapper/vg_database-lv_mysql
+          check_mode: true
+
+        - name: Checks mount points
+          mount:
+            path: /mnt/mysql_backups
+            src: /dev/mapper/vg_database-lv_mysql
+            state: mounted
+            fstype: xfs
+            opts: defaults
+          check_mode: true
+
+        - name: Checks MariaDB package
+          yum:
+            name:
+              - mariadb-server
+              - python3-PyMySQL
+            state: present
+          check_mode: true
+
+        - name: Checks MySQL server config file
+          template:
+            src: my.cnf.j2
+            dest: /etc/my.cnf.d/mariadb-server.cnf
+            backup: yes
+          check_mode: true
+
+        - name: Checks port 3306 on firewall
+          firewalld:
+            permanent: yes
+            service: mysql
+            immediate: yes
+            state: enabled
+          check_mode: true
+
+        - name: Checks mariadb service
+          systemd:
+            name: mariadb
+            enabled: yes
+            state: started
+          check_mode: true
+
+        - name: Checks the DB credentials file
+          copy:
+            dest: ~/.my.cnf
+            content: |
+              [client]
+              user=root
+              password={{ database_password }}
+          check_mode: true
+
+        - name: Tests MySQL login
+          mysql_db:
+            login_user: root
+            login_password: "{{ database_password }}"
+            login_unix_socket: /var/lib/mysql/mysql.sock
+            state: present
+            name: mysql
+          check_mode: true
+
+      rescue:
+        - name: Print when errors
+          fail:
+            msg: 'Found errors for Task 9'
+
+      tags: task9
+
+
+#-- Task 10 ---------------------------------------------------------------------
+
+- hosts: control
+  gather_facts: false
+  become: true
+
+  tasks:
+
+    - name: Task 10 - Create and Work with Roles - Apache on control
+      block:
+
+        - name: Run stat for files
+          stat:
+            path: "{{ item }}"
+          loop:
+            - '/home/automation/plays/playbooks/apache.yml'
+          register: check_file_exists
+
+        - name: Checking that all files were created
+          assert:
+            quiet: true
+            that:
+              - "{{ item.stat.isreg }}"
+          loop: "{{ check_file_exists.results }}"
+          loop_control:
+            label: "{{ item.stat.path }}"
+
+        - name: Run stat for folders
+          stat:
+            path: "{{ item }}"
+          loop:
+            - '/home/automation/plays/roles/sample-apache'
+          register: check_dir_exists
+
+        - name: Checking that required directories were created
+          assert:
+            quiet: true
+            that:
+              - "{{ item.stat.isdir }}"
+          loop: "{{ check_dir_exists.results }}"
+          loop_control:
+            label: "{{ item.stat.path }}"
+
+      rescue:
+        - name: Print when errors
+          fail:
+            msg: 'Found errors for Task 10'
+
+      tags: task10
+
+
+- hosts: webservers
+  gather_facts: false
+  become: true
+
+  tasks:
+
+    - name: Task 10 - Create and Work with Roles - Apache on webservers
+      block:
+
+        - name: Checks packages
+          dnf:
+            name:
+              - httpd
+              - mod_ssl
+              - php
+            update_cache: yes
+          check_mode: true
+          register: checks_packages
+          failed_when: checks_packages.changed == true
+
+        - name: Checks httpd service
+          systemd:
+            name: httpd
+            enabled: yes
+            state: started
+          check_mode: true
+          register: check_httpd_service
+          failed_when: check_httpd_service.changed == true
+
+        - name: Checks firewalld
+          firewalld:
+            immediate: yes
+            permanent: yes
+            service: "{{ item }}"
+            state: enabled
+          with_items:
+            - http
+            - https
+          check_mode: true
+          register: check_firewalld
+          failed_when: check_firewalld.changed == true
+
+        - name: Checks httpd.conf port
+          lineinfile:
+            path: /etc/httpd/conf/httpd.conf
+            regex: '^Listen*'
+            backup: yes
+            line: "Listen {{ ansible_eth1.ipv4.address }}:80"
+          check_mode: true
+          register: check_httpd_conf
+          failed_when: check_httpd_conf.changed == true
+
+        - name: Checks /var/www/html/index.html
+          template:
+            src: index.html.j2
+            dest: /var/www/html/index.html
+          check_mode: true
+          register: check_index_html
+          failed_when: check_index_html.changed == true
+
+        - name: Checks curl
+          shell: |
+            curl -s {{ ansible_eth1.ipv4.address }} | grep -q \
+            'The address of the server is: "{{ ansible_eth1.ipv4.address }}"'
+          args:
+            warn: false
+          changed_when: false
+
+      rescue:
+        - name: Print when errors
+          fail:
+            msg: 'Found errors for Task 10'
+
+      tags: task10
+
+
+#-- Task 11---------------------------------------------------------------------
+
+- hosts: control
+  gather_facts: false
+  become: true
+
+  tasks:
+
+    - name: Task 11 - Download Roles from Ansible Galaxy and Use Them on control
+      block:
+
+        - name: Run stat for files
+          stat:
+            path: "{{ item }}"
+          loop:
+            - '/home/automation/plays/playbooks/haproxy.yml'
+          register: check_file_exists
+
+        - name: Checking that all files were created
+          assert:
+            quiet: true
+            that:
+              - "{{ item.stat.isreg }}"
+          loop: "{{ check_file_exists.results }}"
+          loop_control:
+            label: "{{ item.stat.path }}"
+
+        - name: Run stat for folders
+          stat:
+            path: "{{ item }}"
+          loop:
+            - '/home/automation/plays/roles/geerlingguy.haproxy'
+          register: check_dir_exists
+
+        - name: Checking that required directories were created
+          assert:
+            quiet: true
+            that:
+              - "{{ item.stat.isdir }}"
+          loop: "{{ check_dir_exists.results }}"
+          loop_control:
+            label: "{{ item.stat.path }}"
+
+      rescue:
+        - name: Print when errors
+          fail:
+            msg: 'Found errors for Task 11'
+
+      tags: task11
+
+- hosts: proxy
+  gather_facts: false
+  become: true
+
+  tasks:
+
+    - name: Task 11 - Download Roles from Ansible Galaxy and Use Them on proxy
+      block:
+
+        - name: Checks /etc/haproxy/haproxy.cfg config
+          lineinfile:
+            path: /etc/haproxy/haproxy.cfg
+            regex: "{{ item.regex }}"
+            line: "{{ item.line }}"
+          loop:
+            - { regex: '    bind .*80', line: '    bind *:80' }
+            - { regex: '    balance roundrobin', line: '    balance roundrobin' }
+            - { regex: '    server node2', line: "    server node2 {{ hostvars['node2.ansi.example.com'].ansible_eth1.ipv4.address }}:80 cookie node2 check" }
+            - { regex: '    server node3', line: "    server node3 {{ hostvars['node3.ansi.example.com'].ansible_eth1.ipv4.address }}:80 cookie node3 check" }
+          check_mode: true
+          register: check_haproxy_cfg
+          failed_when: check_haproxy_cfg.changed == true
+
+      rescue:
+        - name: Print when errors
+          fail:
+            msg: 'Found errors for Task 11'
+
+      tags: task11
+
+- hosts: control
+  gather_facts: false
+  become: true
+
+  tasks:
+
+    - name: Task 11 - Download Roles from Ansible Galaxy and Use Them on control
+      block:
+
+        - name: Gets HAProxy first value
+          command: curl -s http://node1.ansi.example.com/
+          register: curl_output1
+          args:
+            warn: false
+          changed_when: false
+
+        - name: Gets HAProxy first value
+          command: curl -s http://node1.ansi.example.com/
+          register: curl_output2
+          args:
+            warn: false
+          changed_when: false
+
+        - name: Compares output
+          assert:
+            that: curl_output1.stdout != curl_output2.stdout
+
+      rescue:
+        - name: Print when errors
+          fail:
+            msg: 'Found errors for Task 11'
+
+      tags: task11
+
+
+#-- Task 12 --------------------------------------------------------------------
+
+- hosts: control
+  gather_facts: false
+  become: true
+
+  tasks:
+
+    - name: Task 12 - Security on control
+      block:
+
+        - name: Run stat for files
+          stat:
+            path: "{{ item }}"
+          loop:
+            - '/home/automation/plays/playbooks/selinux.yml'
+          register: check_file_exists
+
+        - name: Checking that all files were created
+          assert:
+            quiet: true
+            that:
+              - "{{ item.stat.isreg }}"
+          loop: "{{ check_file_exists.results }}"
+          loop_control:
+            label: "{{ item.stat.path }}"
+
+        - name: Checks if rhel-system-role is installed
+          dnf:
+            name: rhel-system-roles
+            state: present
+          check_mode: true
+          register: check_rhel_system_roles
+          failed_when: check_rhel_system_roles.changed == true
+
+      rescue:
+        - name: Print when errors
+          fail:
+            msg: 'Found errors for Task 12'
+
+      tags: task12
+
+- hosts: webservers
+  gather_facts: false
+  become: true
+
+  tasks:
+
+    - name: Task 12 - Security on webservers
+      block:
+
+        - name: Check SELinux boolean
+          seboolean:
+            name: httpd_can_network_connect
+            persistent: yes
+            state: yes
+          check_mode: true
+          register: check_selinux_bool
+          failed_when: check_selinux_bool.changed == true
+
+      rescue:
+        - name: Print when errors
+          fail:
+            msg: 'Found errors for Task 12'
+
+      tags: task12
+
+
+#-- Task 13 --------------------------------------------------------------------
+
+- hosts: control
+  gather_facts: false
+  become: true
+
+  tasks:
+
+    - name: Task 13 - Use Contionals to Control Play Execution on control
+      block:
+
+        - name: Run stat for files
+          stat:
+            path: "{{ item }}"
+          loop:
+            - '/home/automation/plays/playbooks/sysctl.yml'
+          register: check_file_exists
+
+        - name: Checking that all files were created
+          assert:
+            quiet: true
+            that:
+              - "{{ item.stat.isreg }}"
+          loop: "{{ check_file_exists.results }}"
+          loop_control:
+            label: "{{ item.stat.path }}"
+
+
+- hosts: proxy:database:webservers
+  gather_facts: false
+  become: true
+
+  tasks:
+
+    - name: Task 13 - Use Contionals to Control Play Execution on all
+      block:
+
+        - name: Check sysctl
+          sysctl:
+            name: vm.swappiness
+            value: '10'
+            sysctl_set: yes
+            state: present
+          when: ansible_memtotal_mb > 512
+          check_mode: true
+          register: check_sysctl
+          failed_when: check_sysctl.changed == true
+
+      rescue:
+        - name: Print when errors
+          fail:
+            msg: 'Found errors for Task 13'
+
+      tags: task13
+
+
+#-- Task 14 --------------------------------------------------------------------
+
+- hosts: control
+  gather_facts: false
+  become: true
+
+  tasks:
+
+    - name: Task 14 - Use Archiving on control
+      block:
+
+        - name: Run stat for files
+          stat:
+            path: "{{ item }}"
+          loop:
+            - '/home/automation/plays/playbooks/archive.yml'
+          register: check_file_exists
+
+        - name: Checking that all files were created
+          assert:
+            quiet: true
+            that:
+              - "{{ item.stat.isreg }}"
+          loop: "{{ check_file_exists.results }}"
+          loop_control:
+            label: "{{ item.stat.path }}"
+
+      rescue:
+        - name: Print when errors
+          fail:
+            msg: 'Found errors for Task 14'
+
+      tags: task14
+
+- hosts: database
+  gather_facts: false
+  become: true
+
+  tasks:
+
+    - name: Task 14 - Use Archiving on database
+      block:
+
+        - name: Check create file
+          copy:
+            content: 'dev,test,qa,prod'
+            dest: /mnt/mysql_backups/database_list.txt
+          check_mode: true
+          register: check_database_list_file
+          failed_when: check_database_list_file.changed == true
+
+
+        - name: Create a tar.gz archive of a single file.
+          file:
+            path: /mnt/mysql_backups/archive.gz
+          check_mode: true
+          register: check_archive_file
+          failed_when: check_archive_file.changed == true
+
+      rescue:
+        - name: Print when errors
+          fail:
+            msg: 'Found errors for Task 14'
+
+      tags: task14
+
+#-- Task 15 --------------------------------------------------------------------
+
+- hosts: control
+  gather_facts: false
+  become: true
+
+  tasks:
+
+    - name: Task 15 - Work with Ansible Facts
+      block:
+
+        - name: Run stat for files
+          stat:
+            path: "{{ item }}"
+          loop:
+            - '/home/automation/plays/playbooks/facts.yml'
+          register: check_file_exists
+
+        - name: Checking that all files were created
+          assert:
+            quiet: true
+            that:
+              - "{{ item.stat.isreg }}"
+          loop: "{{ check_file_exists.results }}"
+          loop_control:
+            label: "{{ item.stat.path }}"
+
+      rescue:
+        - name: Print when errors
+          fail:
+            msg: 'Found errors for Task 15'
+
+      tags: task15
+
+- hosts: database
+  become: yes
+
+  tasks:
+
+    - name: Task 15 - Work with Ansible Facts
+      block:
+
+        - name: Check custom fact file
+          copy:
+            content: |
+                    [sample_exam]
+                    server_role=mysql
+            dest: /etc/ansible/facts.d/custom.fact
+          check_mode: true
+          register: check_custom_fact
+          failed_when: check_custom_fact.changed == true
+
+      rescue:
+        - name: Print when errors
+          fail:
+            msg: 'Found errors for Task 15'
+
+      tags: task15
+
+
+#-- Task 16 --------------------------------------------------------------------
+
+- hosts: control
+  gather_facts: false
+  become: true
+
+  tasks:
+
+    - name: Task 16 - Software Packages on control
+      block:
+
+        - name: Run stat for files
+          stat:
+            path: "{{ item }}"
+          loop:
+            - '/home/automation/plays/playbooks/packages.yml'
+          register: check_file_exists
+
+        - name: Checking that all files were created
+          assert:
+            quiet: true
+            that:
+              - "{{ item.stat.isreg }}"
+          loop: "{{ check_file_exists.results }}"
+          loop_control:
+            label: "{{ item.stat.path }}"
+
+      rescue:
+        - name: Print when errors
+          fail:
+            msg: 'Found errors for Task 16'
+
+      tags: task16
+
+- hosts: proxy:database
+  gather_facts: false
+  become: true
+
+  tasks:
+
+    - name: Task 16 - Software Packages on control
+      block:
+
+        - name: Installs packages
+          dnf:
+            name:
+              - tcpdump
+              - mailx
+          when: "'proxy' in group_names"
+          check_mode: true
+          register: check_tcpdump_mailx
+          failed_when: check_tcpdump_mailx.changed == true
+
+        - name: Installs packages
+          dnf:
+            name:
+              - lsof
+              - mailx
+          when: "'database' in group_names"
+          check_mode: true
+          register: check_lsof_mailx
+          failed_when: check_lsof_mailx.changed == true
+
+      rescue:
+        - name: Print when errors
+          fail:
+            msg: 'Found errors for Task 16'
+
+      tags: task16
+
+
+#-- Task 17 --------------------------------------------------------------------
+
+- hosts: control
+  gather_facts: false
+  become: true
+
+  tasks:
+
+    - name: Task 17 - Services on control
+      block:
+
+        - name: Run stat for files
+          stat:
+            path: "{{ item }}"
+          loop:
+            - '/home/automation/plays/playbooks/target.yml'
+          register: check_file_exists
+
+        - name: Checking that all files were created
+          assert:
+            quiet: true
+            that:
+              - "{{ item.stat.isreg }}"
+          loop: "{{ check_file_exists.results }}"
+          loop_control:
+            label: "{{ item.stat.path }}"
+
+      rescue:
+        - name: Print when errors
+          fail:
+            msg: 'Found errors for Task 17'
+
+      tags: task17
+
+- hosts: webservers
+  gather_facts: false
+  become: true
+
+  tasks:
+
+    - name: Task 17 - Services on webservers
+      block:
+
+        - name: Gets the default target
+          command: systemctl get-default
+          changed_when: false
+          check_mode: true
+          register: check_default_target
+          failed_when: check_default_target.stdout != 'multi-user.target'
+
+      rescue:
+        - name: Print when errors
+          fail:
+            msg: 'Found errors for Task 17'
+
+      tags: task17
+
+
+
+#-- Task 18 --------------------------------------------------------------------
+
+- hosts: control
+  gather_facts: false
+  become: true
+
+  tasks:
+
+    - name: Task 18 - Create and Use Templates to Create Customized Configuration Files on control
+      block:
+
+        - name: Run stat for files
+          stat:
+            path: "{{ item }}"
+          loop:
+            - '/home/automation/plays/playbooks/server_list.yml'
+          register: check_file_exists
+
+        - name: Checking that all files were created
+          assert:
+            quiet: true
+            that:
+              - "{{ item.stat.isreg }}"
+          loop: "{{ check_file_exists.results }}"
+          loop_control:
+            label: "{{ item.stat.path }}"
+
+      rescue:
+        - name: Print when errors
+          fail:
+            msg: 'Found errors for Task 18'
+
+      tags: task18
+
+- hosts: database
+  gather_facts: false
+  become: true
+
+  tasks:
+
+    - name: Task 18 - Create and Use Templates to Create Customized Configuration Files on database
+      block:
+
+        - name: Template
+          template:
+            src: server_list.j2
+            dest: /etc/server_list.txt
+            owner: automation
+            mode: 0600
+            setype: net_conf_t
+          check_mode: true
+          register: check_server_list_file
+          failed_when: check_server_list_file.changed == true
+
+      rescue:
+        - name: Print when errors
+          fail:
+            msg: 'Found errors for Task 18'
+
+      tags: task18

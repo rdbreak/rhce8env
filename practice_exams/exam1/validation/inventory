@@ -1,0 +1,13 @@
+[control]
+localhost
+
+[proxy]
+node1.ansi.example.com ansible_host=192.168.55.201
+
+[webservers]
+node2.ansi.example.com ansible_host=192.168.55.202
+node3.ansi.example.com ansible_host=192.168.55.203
+
+[database]
+node3.ansi.example.com ansible_host=192.168.55.203
+node4.ansi.example.com ansible_host=192.168.55.204

@@ -1,0 +1,5 @@
+---
+
+hostname_fqdn: repo.ansi.example.com
+hostname_host: repo
+ansible_host: '192.168.55.199'

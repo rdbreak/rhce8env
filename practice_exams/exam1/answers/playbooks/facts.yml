@@ -1,0 +1,17 @@
+---
+- hosts: database
+  become: yes
+
+  tasks:
+
+    - name: Create fact.d
+      file:
+        path: /etc/ansible/facts.d
+        state: directory
+
+    - name: Create file
+      copy:
+        content: |
+                [sample_exam]
+                server_role=mysql
+        dest: /etc/ansible/facts.d/custom.fact

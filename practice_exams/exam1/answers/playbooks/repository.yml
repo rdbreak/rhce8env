@@ -1,0 +1,29 @@
+---
+- hosts: all
+  become: yes
+
+  tasks:
+  
+    - name: Creates the RPMS repo
+      copy:
+        dest: /etc/yum.repos.d/rpms.repo
+        content: |
+          [BaseOS]
+          name=BaseOS on repo.ansi.example.com
+          baseurl=http://repo.ansi.example.com/BaseOS
+          enabled=1
+          gpgcheck=0
+
+          [AppStream]
+          name=AppStream on repo.ansi.example.com
+          baseurl=http://repo.ansi.example.com/AppStream
+          enabled=1
+          gpgcheck=0
+
+    - name: Disable IPA repo
+      lineinfile:
+        path: /etc/yum.repos.d/ipa.repo
+        regexp: '^enabled=*'
+        line: 'enabled=0'
+      ignore_errors: yes
+     
